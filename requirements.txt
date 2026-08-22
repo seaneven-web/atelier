@@ -1,0 +1,21 @@
+# Atelier — runtime requirements. Python 3.9+ (the developer's Intel Mac) … 3.11 on CI runners.
+#
+# Intel Macs: the last PyTorch with macOS x86_64 wheels is 2.2.2, which needs numpy<2 and
+# diffusers/transformers of the same era. Every other platform takes the current releases.
+torch==2.2.2;        sys_platform == "darwin" and platform_machine == "x86_64"
+torchvision==0.17.2; sys_platform == "darwin" and platform_machine == "x86_64"
+numpy<2;             sys_platform == "darwin" and platform_machine == "x86_64"
+diffusers==0.30.3;   sys_platform == "darwin" and platform_machine == "x86_64"
+transformers==4.44.2; sys_platform == "darwin" and platform_machine == "x86_64"
+accelerate==0.34.2;  sys_platform == "darwin" and platform_machine == "x86_64"
+huggingface_hub<0.27; sys_platform == "darwin" and platform_machine == "x86_64"
+torch>=2.2;          not (sys_platform == "darwin" and platform_machine == "x86_64")
+torchvision>=0.17;   not (sys_platform == "darwin" and platform_machine == "x86_64")
+numpy;               not (sys_platform == "darwin" and platform_machine == "x86_64")
+diffusers>=0.30;     not (sys_platform == "darwin" and platform_machine == "x86_64")
+transformers>=4.44;  not (sys_platform == "darwin" and platform_machine == "x86_64")
+accelerate>=0.34;    not (sys_platform == "darwin" and platform_machine == "x86_64")
+safetensors
+pillow
+pillow-heif          # iPhone HEIC/HEIF photos
+anthropic            # only for atelier_claude.py (optional Claude/Opus studio)

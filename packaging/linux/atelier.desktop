@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Atelier
+Comment=Paint anything in one artist's style — their work never leaves this computer
+Exec=__EXEC__
+Icon=__ICON__
+Terminal=false
+Categories=Graphics;

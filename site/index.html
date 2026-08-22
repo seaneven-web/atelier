@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — paint anything in one artist's style, privately</title>
+<meta name="description" content="Atelier learns one artist's style from their own pieces and paints whatever you describe in that style — entirely on your computer. Their art never leaves the machine.">
+<link rel="icon" href="assets/icon-256.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400;9..144,500;9..144,600,50&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root { --bg:#F2F3F0; --surface:#fff; --surface-2:#E9EBE6; --ink:#1C1F23; --muted:#5C6470; --line:#D8DCD6; --accent:#2F4FCB; --accent-ink:#fff; --accent-soft:#E4E9FA; --ok:#2F7D4F; --warn:#A8601F; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#15181C; --surface:#1E2227; --surface-2:#262B31; --ink:#E9EAE6; --muted:#9AA3AE; --line:#2E343B; --accent:#8196FF; --accent-ink:#0E1220; --accent-soft:#232A45; --ok:#6FBF8A; --warn:#E0A466; } }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:40px 22px 90px; }
+  nav { display:flex; gap:18px; align-items:center; font-size:14px; color:var(--muted); margin-bottom:54px; flex-wrap:wrap; }
+  nav b { color:var(--ink); font:500 20px/1 Fraunces,Georgia,serif; margin-right:auto; }
+  nav a { color:var(--muted); text-decoration:none; } nav a:hover { color:var(--ink); }
+  h1 { font:500 clamp(36px,6vw,60px)/1.05 Fraunces,Georgia,serif; font-variation-settings:"SOFT" 50,"opsz" 72; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance; max-width:18ch; }
+  .lede { font-size:19px; color:var(--muted); max-width:62ch; margin:0 0 26px; }
+  .cta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn { display:inline-block; padding:12px 18px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); text-decoration:none; font-weight:500; font-size:15px; }
+  .btn.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  .btn:hover { border-color:var(--muted); } .btn.primary:hover { filter:brightness(1.08); }
+  .note { color:var(--muted); font-size:13px; margin-top:10px; }
+  .hero-img { margin:38px 0 0; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--surface); box-shadow:0 8px 30px rgba(20,24,30,.08); }
+  .hero-img img { width:100%; display:block; }
+  .cap { font-size:13px; color:var(--muted); padding:10px 14px; border-top:1px solid var(--line); }
+  section { margin-top:64px; }
+  h2 { font:500 30px/1.15 Fraunces,Georgia,serif; font-variation-settings:"SOFT" 50,"opsz" 36; margin:0 0 14px; text-wrap:balance; }
+  p { max-width:68ch; } .muted { color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px; }
+  .card h3 { margin:0 0 6px; font:600 15px/1.3 "IBM Plex Sans",sans-serif; } .card p { margin:0; color:var(--muted); font-size:14.5px; }
+  .num { font:500 12px/1 "IBM Plex Mono",monospace; color:var(--accent); letter-spacing:.08em; margin-bottom:8px; display:block; }
+  .steps { counter-reset:s; display:grid; gap:12px; }
+  .step { display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:start; }
+  .step i { font:500 14px/1 "IBM Plex Mono",monospace; color:var(--accent); background:var(--accent-soft); border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-style:normal; }
+  .step b { display:block; } .step span { color:var(--muted); font-size:15px; }
+  .priv { background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:12px; padding:20px 24px; }
+  .priv ul { margin:10px 0 0; padding-left:20px; color:var(--muted); } .priv li { margin:4px 0; }
+  table { border-collapse:collapse; width:100%; font-size:14.5px; } td,th { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; } th { font-weight:600; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  .dl a { display:block; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px 18px; text-decoration:none; color:var(--ink); }
+  .dl a:hover { border-color:var(--accent); } .dl b { display:block; } .dl small { color:var(--muted); }
+  code { font:400 .92em "IBM Plex Mono",monospace; background:var(--surface-2); padding:2px 6px; border-radius:5px; }
+  pre { background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font:400 13px/1.55 "IBM Plex Mono",monospace; }
+  footer { margin-top:70px; color:var(--muted); font-size:13.5px; border-top:1px solid var(--line); padding-top:18px; }
+  footer a { color:inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><b>Atelier</b><a href="#how">How it works</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
+
+  <h1>Paint anything in one artist's style — on their own computer.</h1>
+  <p class="lede">Give Atelier a few of an artist's pieces and say what you'd like to see — <i>a hippo eating cheese</i>, <i>the harbour at dusk</i>, <i>this sketch, finished</i>. It paints it the way they paint. Their work never leaves the machine, and it is never used to train anyone's AI.</p>
+  <div class="cta">
+    <a class="btn primary" href="#download">Download for Mac, Windows or Linux</a>
+    <a class="btn" href="https://github.com/seaneven-web/atelier">View the code</a>
+  </div>
+  <p class="note">Free and open source. Unsigned builds (see the Download notes). The app fetches two pretrained models once (~3 GB), then runs offline.</p>
+
+  <figure class="hero-img" style="margin-top:38px">
+    <img src="assets/app.png" alt="The Atelier app: the artist's pieces, a prompt with sliders, and the painted results">
+    <figcaption class="cap">The whole app is three benches: the artist's work · ask for a piece (with sliders for style strength, sketch freedom, quality, detail and how many) · the pieces.</figcaption>
+  </figure>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="muted">Two pretrained models that are known to work, and one small index that is specific to the artist.</p>
+    <div class="steps" style="margin-top:18px">
+      <div class="step"><i>1</i><div><b>The artist's work becomes a style book.</b><span>Drop in JPGs, PNGs or phone photos (HEIC is fine; photographed drawings are cropped to the sheet of paper). Atelier reads each piece's palette, tone and brush texture into a small per-artist index — a file in the app's folder, nothing more.</span></div></div>
+      <div class="step"><i>2</i><div><b>Your words are drawn.</b><span>A text-to-image model (SD-Turbo, a diffusion UNet) draws what you describe — in the artist's medium, because the style book tells it whether this is coloured pencil on paper or oil on canvas. Or start from a sketch: the words reinterpret it as much or as little as you like.</span></div></div>
+      <div class="step"><i>3</i><div><b>It is repainted in the style.</b><span>Neural style transfer (VGG19, the method behind the “deep style” apps) repaints the drawing with the artist's palette and brushwork, using the pieces your words point at. Mood words — warm, quiet, dramatic, dark — pick the pieces and grade the colour.</span></div></div>
+      <div class="step"><i>4</i><div><b>You choose.</b><span>Ask for one piece or eight, turn the style up or down, keep a seed to get the same piece again, click any result for variations. Everything lands in a gallery folder you own.</span></div></div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <h2>Private by construction</h2>
+    <div class="priv">
+      <b>Your art stays in one folder on your computer — and nowhere else.</b>
+      <ul>
+        <li>No account, no upload, no server of ours. The app is a local program that opens a window.</li>
+        <li>The only network access is a one-time download of two public, pretrained models. After that, switch the network off: it keeps working.</li>
+        <li>Nothing here trains a shared model on your work. The “style book” is a small file describing <em>this</em> artist's palette and texture, stored in the app's folder and used only to paint for them. Delete the folder and it is gone.</li>
+        <li>Open source, so all of this can be checked — and the sandbox folder is a plain folder you can open any time from inside the app.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>The knobs</h2>
+    <table>
+      <tr><th>Style strength</th><td>How hard the style is pushed onto the drawing: gentle tint → fully repainted brushwork.</td></tr>
+      <tr><th>Sketch freedom</th><td>With a sketch as the starting point: faithful to the sketch → only loosely inspired by it. Or repaint the sketch exactly as it is.</td></tr>
+      <tr><th>Quality · detail</th><td>Iterations and working resolution — finer results take longer. About a minute per piece on a recent laptop at the defaults.</td></tr>
+      <tr><th>Pieces · seed</th><td>How many to paint (they are ranked; the first is the one that took the style best) and an optional seed so the same words give the same piece again.</td></tr>
+    </table>
+  </section>
+
+  <section id="download">
+    <h2>Download</h2>
+    <div class="dl">
+      <a href="https://github.com/seaneven-web/atelier/releases/latest/download/Atelier-mac-arm64.dmg"><b>macOS · Apple silicon</b><small>Atelier-mac-arm64.dmg</small></a>
+      <a href="https://github.com/seaneven-web/atelier/releases/latest/download/Atelier-mac-x86_64.dmg"><b>macOS · Intel</b><small>Atelier-mac-x86_64.dmg</small></a>
+      <a href="https://github.com/seaneven-web/atelier/releases/latest/download/Atelier-windows-x64-setup.exe"><b>Windows · 64-bit</b><small>Atelier-windows-x64-setup.exe (or the .zip)</small></a>
+      <a href="https://github.com/seaneven-web/atelier/releases/latest/download/Atelier-linux-x86_64.tar.gz"><b>Linux · x86_64</b><small>Atelier-linux-x86_64.tar.gz</small></a>
+    </div>
+    <p class="note">All builds: <a href="https://github.com/seaneven-web/atelier/releases">github.com/seaneven-web/atelier/releases</a>. The builds are unsigned: on macOS right-click → Open the first time (Gatekeeper); on Windows choose “More info → Run anyway” (SmartScreen). First launch offers the one-time model download (~3 GB). Needs ~8 GB of RAM; a GPU is used when present, otherwise the CPU (about a minute per piece).</p>
+    <h3 style="margin-top:26px;font:600 15px/1.3 'IBM Plex Sans',sans-serif">Or run it from source</h3>
+<pre>git clone https://github.com/seaneven-web/atelier && cd atelier
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-desktop.txt
+.venv/bin/python atelier_app.py          # the app
+.venv/bin/python atelier.py paint "a hippo eating cheese" --portfolio ~/DadsArt   # the command line</pre>
+  </section>
+
+  <section>
+    <h2>Honest limits</h2>
+    <p>Style transfer carries an artist's palette, texture and tone very well; it carries their <em>composition</em> less well — the drawing's layout comes from the content model (or from your sketch, which is the best way to make it yours). More pieces help, and cleanly photographed pieces help most. A fine-tune of the content model on the artist's work (a LoRA) would learn composition too and is the natural next step; it needs a real GPU.</p>
+  </section>
+
+  <footer>Atelier is open source (<a href="https://github.com/seaneven-web/atelier">GitHub</a>). Pretrained components: VGG19 (ImageNet weights, via torchvision) and Stable Diffusion Turbo (Stability AI, under its own licence) — both downloaded from their public sources by the app, never redistributed here. Made for an artist who wanted to play with his own style without giving it away.</footer>
+</div>
+</body>
+</html>

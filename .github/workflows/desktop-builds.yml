@@ -1,0 +1,146 @@
+# Atelier desktop builds — macOS (arm64 + x86_64), Windows (x64), Linux (x86_64) — and the Release job.
+# One PyInstaller leg per OS/arch (PyInstaller cannot cross-compile); each leg runs the packaging script
+# for its OS (icon → PyInstaller → bundle → packaging/smoke_test.py --frozen) and uploads the bundle(s)
+# under a STABLE artifact name. On a v* tag (or a manual dispatch with publish_release) the release job
+# collects all of them into a GitHub Release, so
+#   https://github.com/seaneven-web/atelier/releases/latest/download/<name>
+# is a permanent URL (the site's Download buttons point there).
+#   Atelier-mac-arm64.dmg / .zip · Atelier-mac-x86_64.dmg / .zip · Atelier-windows-x64-setup.exe / .zip · Atelier-linux-x86_64.tar.gz
+# Bundles are UNSIGNED (Gatekeeper / SmartScreen caveats in packaging/README.md). The pretrained weights are
+# not in the bundles — the app downloads them once, into its sandbox folder.
+name: desktop-builds
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish a GitHub pre-release from this run's bundles"
+        type: boolean
+        default: false
+concurrency:
+  group: desktop-builds-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+env:
+  PYTHON_VERSION: "3.11"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUTF8: "1"
+jobs:
+  build:
+    name: ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15,        arch: arm64,  artifact: Atelier-mac-arm64,     files: "dist/Atelier-mac-arm64.dmg\ndist/Atelier-mac-arm64.zip" }
+          - { os: macos-15-intel,  arch: x86_64, artifact: Atelier-mac-x86_64,    files: "dist/Atelier-mac-x86_64.dmg\ndist/Atelier-mac-x86_64.zip" }
+          - { os: windows-latest,  arch: x64,    artifact: Atelier-windows-x64,   files: "dist/Atelier-windows-x64-setup.exe\ndist/Atelier-windows-x64.zip" }
+          - { os: ubuntu-22.04,    arch: x86_64, artifact: Atelier-linux-x86_64,  files: "dist/Atelier-linux-x86_64.tar.gz" }
+    env:
+      ATELIER_NO_WINDOW: "1"
+    steps:
+      - name: Data dir for every test (outside the checkout)
+        shell: bash
+        run: echo "ATELIER_DATA_DIR=$RUNNER_TEMP/atelier-data" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-desktop.txt
+      - name: Linux system packages (GTK / WebKit for pywebview, best effort)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgirepository1.0-dev libcairo2-dev gir1.2-gtk-3.0 pkg-config python3-dev libgtk-3-0 || echo "::warning::GTK dev packages missing; Linux app will open in the browser"
+          sudo apt-get install -y --no-install-recommends gir1.2-webkit2-4.1 || sudo apt-get install -y --no-install-recommends gir1.2-webkit2-4.0 || echo "::warning::no WebKit2 GTK; browser fallback"
+      - name: Create .venv and install dependencies (macOS / Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip wheel
+          # CPU torch on Linux (the CUDA wheels are ~2 GB and useless in a generic bundle)
+          if [ "$RUNNER_OS" = "Linux" ]; then .venv/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu; fi
+          .venv/bin/python -m pip install -r requirements.txt -r requirements-desktop.txt
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          .venv/bin/python -c "import sys, torch, PyInstaller; print(sys.version); print('torch', torch.__version__, 'pyinstaller', PyInstaller.__version__)"
+      - name: Create .venv and install dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip wheel
+          .\.venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-desktop.txt
+          "$PWD\.venv\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          .\.venv\Scripts\python.exe -c "import sys, torch, PyInstaller; print(sys.version); print('torch', torch.__version__, 'pyinstaller', PyInstaller.__version__)"
+      - name: Linux GTK backend for pywebview (best effort)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: .venv/bin/python -m pip install "pygobject<3.51" || .venv/bin/python -m pip install pygobject || echo "::warning::GTK backend unavailable; browser fallback"
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: packaging/build_macos.sh
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: packaging/build_linux.sh
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File packaging\build_windows.ps1
+      - name: Upload ${{ matrix.artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 14
+  release:
+    name: release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: Atelier-*
+          merge-multiple: true
+      - name: Resolve tag and version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import re,pathlib; t=pathlib.Path("atelier_app.py").read_text(encoding="utf-8"); m=re.search(r"^__version__\s*=\s*[\"\x27]([^\"\x27]+)[\"\x27]", t, re.M); print(m.group(1) if m else "0.0.0")')
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then tag="${GITHUB_REF_NAME}"; pre=false; name="Atelier ${tag}"; else tag="v${version}-manual-${GITHUB_RUN_NUMBER}"; pre=true; name="Atelier ${version} (manual build #${GITHUB_RUN_NUMBER})"; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"; echo "name=$name" >> "$GITHUB_OUTPUT"; echo "pre=$pre" >> "$GITHUB_OUTPUT"; echo "version=$version" >> "$GITHUB_OUTPUT"
+          ls -la release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ steps.meta.outputs.pre == 'true' }}
+          generate_release_notes: true
+          files: release-assets/Atelier-*
+          body: |
+            Atelier ${{ steps.meta.outputs.version }} — desktop bundles for macOS (Apple silicon + Intel), Windows (x64) and Linux (x86_64).
+            Unsigned builds: macOS → right-click → Open the first time; Windows → "More info → Run anyway". The app downloads its two pretrained models (~3 GB) once into its own folder and then runs offline. Your art never leaves the computer.

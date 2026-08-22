@@ -1,0 +1,27 @@
+# Light checks on every push: byte-compile, node --check the UI, dev-mode smoke test of the app (no models needed).
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch: {}
+permissions: { contents: read }
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env: { PYTHONUTF8: "1", ATELIER_NO_WINDOW: "1", PIP_DISABLE_PIP_VERSION_CHECK: "1" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip, cache-dependency-path: requirements.txt }
+      - name: Install (CPU torch)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements.txt
+      - name: Byte-compile
+        run: python -m py_compile atelier.py atelier_neural.py atelier_claude.py atelier_app.py packaging/smoke_test.py packaging/make_icon.py
+      - name: node --check web/app.js
+        run: node --check web/app.js
+      - name: Dev-mode smoke test
+        run: python packaging/smoke_test.py "python atelier_app.py"

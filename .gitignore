@@ -1,0 +1,17 @@
+.venv/
+model/
+gallery/
+data/
+dist/
+build/
+packaging/build/
+portfolio/
+portfolio_paper/
+portfolios/
+*.pt
+*.pth
+*.safetensors
+__pycache__/
+*.pyc
+.DS_Store
+packaging/icon.iconset/

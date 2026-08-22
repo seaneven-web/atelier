@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier</title>
+<link rel="stylesheet" href="/web/app.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Atelier</h1>
+      <p class="sub">Paint anything in one artist's style. Their work never leaves this computer.</p>
+    </div>
+    <div class="status" id="status">
+      <span class="pill" id="pill-models">models: checking…</span>
+      <span class="pill" id="pill-device"></span>
+      <button class="quiet" id="open-folder" title="the one folder that holds everything">sandbox folder</button>
+    </div>
+  </header>
+
+  <!-- models -->
+  <section class="bench" id="b-models">
+    <div class="bench-head"><span class="n">0</span><h2>One-time setup</h2><span class="hint">the only download the app ever makes</span></div>
+    <p class="muted" id="models-text">Checking the pretrained models…</p>
+    <div class="row"><button class="primary" id="dl" hidden>Download the models (~3 GB, once)</button></div>
+    <div class="progress" id="dl-prog" hidden><i></i></div>
+    <div class="log" id="dl-log"></div>
+  </section>
+
+  <!-- portfolio -->
+  <section class="bench" id="b1">
+    <div class="bench-head"><span class="n">1</span><h2>The artist's work</h2><span class="hint">JPG · PNG · HEIC from a phone · 4 or more pieces</span></div>
+    <div class="row" style="margin-bottom:10px">
+      <label>portfolio <select id="pf"></select></label>
+      <input id="pf-name" placeholder="new portfolio name (e.g. Dad)" style="max-width:220px">
+      <label class="check"><input type="checkbox" id="paper" checked> photographed on a table — crop to the paper</label>
+    </div>
+    <label class="drop" id="drop" tabindex="0">
+      <input type="file" id="files" accept="image/*,.heic,.heif" multiple>
+      <strong>Drop the pieces here</strong> or click to choose files<br>
+      <span class="small">Words in file names — <code>owl-hoot.jpg</code> — become things you can ask for.</span>
+    </label>
+    <div class="progress" id="pf-prog" hidden><i></i></div>
+    <div class="log" id="pf-log"></div>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="tags" id="pf-meta"></div>
+  </section>
+
+  <!-- ask -->
+  <section class="bench off" id="b2">
+    <div class="bench-head"><span class="n">2</span><h2>Ask for a piece</h2><span class="hint">say what to draw · optionally start from a sketch</span></div>
+    <div class="prompt">
+      <input id="prompt" placeholder="e.g. a hippo eating cheese" autocomplete="off">
+      <button class="primary" id="paint">Paint</button>
+    </div>
+    <div class="two">
+      <div class="sketch-box">
+        <label class="drop small-drop" id="sdrop" tabindex="0">
+          <input type="file" id="sfile" accept="image/*,.heic,.heif">
+          <span id="sdrop-text"><strong>Start from a sketch</strong> (optional) — drop a sketch or photo</span>
+          <img id="spreview" alt="" hidden>
+        </label>
+        <div class="row small" id="srow" hidden>
+          <label>how to use it
+            <select id="smode">
+              <option value="sketch">starting point — the words reinterpret it</option>
+              <option value="repaint">repaint as-is — just apply the style</option>
+            </select></label>
+          <button class="quiet" id="sclear">remove</button>
+        </div>
+      </div>
+      <div class="sliders">
+        <label><span>style strength <b id="v-strength">0.8</b></span><input type="range" id="strength" min="0.3" max="1.4" step="0.05" value="0.8"><small>gentle ← → fully repainted</small></label>
+        <label id="l-freedom"><span>sketch freedom <b id="v-freedom">0.55</b></span><input type="range" id="freedom" min="0.2" max="0.9" step="0.05" value="0.55"><small>faithful ← → loosely inspired</small></label>
+        <label><span>quality <b id="v-iters">250</b></span><input type="range" id="iters" min="60" max="500" step="10" value="250"><small>iterations · more = finer, slower</small></label>
+        <label><span>detail <b id="v-res">384</b>px</span><input type="range" id="res" min="256" max="512" step="64" value="384"><small>working resolution</small></label>
+        <label><span>pieces <b id="v-count">4</b></span><input type="range" id="count" min="1" max="8" step="1" value="4"><small>each takes about a minute</small></label>
+        <label><span>seed</span><input id="seed" placeholder="random" style="max-width:120px"><small>same seed + same words = same piece</small></label>
+      </div>
+    </div>
+    <div class="recipe" id="recipe" hidden>
+      <div class="lab"><span>how it reads you</span><span id="rmeta"></span></div>
+      <div id="rchips"></div>
+      <div class="why" id="rwhy"></div>
+    </div>
+    <div class="progress" id="p-prog" hidden><i></i></div>
+    <div class="log" id="p-log"></div>
+  </section>
+
+  <!-- results -->
+  <section class="bench off" id="b3">
+    <div class="bench-head"><span class="n">3</span><h2>Pieces</h2><span class="hint" id="r-hint"></span></div>
+    <div class="out" id="out"></div>
+    <div class="row" style="margin-top:12px"><button class="quiet" id="open-gallery">open the gallery folder</button><button class="quiet" id="more" hidden>more like this</button></div>
+    <details class="history"><summary>earlier sheets</summary><div class="hist" id="hist"></div></details>
+  </section>
+
+  <footer>
+    <b>Private by construction.</b> Your pieces, sketches and results live in one folder on this computer (<span id="ddir"></span>) and are never uploaded anywhere. The models (VGG19 + SD-Turbo) are downloaded once and then run locally — switch the network off if you like; it keeps working. Nothing here trains a shared AI on your work: the style index is a file in that folder, for this artist only.
+  </footer>
+</div>
+<script src="/web/app.js"></script>
+</body>
+</html>

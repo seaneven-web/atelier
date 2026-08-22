@@ -1,0 +1,7 @@
+# Desktop packaging extras — install on top of requirements.txt, same environment:
+#   .venv/bin/pip install -r requirements.txt -r requirements-desktop.txt
+# pywebview gives the native window (Cocoa / EdgeChromium / GTK→Qt); without a usable
+# backend the app opens in the default browser — supported, not a failure.
+pywebview>=4.4
+pyinstaller>=6.0
+pillow>=10.0
