@@ -9,12 +9,12 @@ diffusers==0.30.3;   sys_platform == "darwin" and platform_machine == "x86_64"
 transformers==4.44.2; sys_platform == "darwin" and platform_machine == "x86_64"
 accelerate==0.34.2;  sys_platform == "darwin" and platform_machine == "x86_64"
 huggingface_hub<0.27; sys_platform == "darwin" and platform_machine == "x86_64"
-torch>=2.2;          not (sys_platform == "darwin" and platform_machine == "x86_64")
-torchvision>=0.17;   not (sys_platform == "darwin" and platform_machine == "x86_64")
-numpy;               not (sys_platform == "darwin" and platform_machine == "x86_64")
-diffusers>=0.30;     not (sys_platform == "darwin" and platform_machine == "x86_64")
-transformers>=4.44;  not (sys_platform == "darwin" and platform_machine == "x86_64")
-accelerate>=0.34;    not (sys_platform == "darwin" and platform_machine == "x86_64")
+torch>=2.2;          sys_platform != "darwin" or platform_machine != "x86_64"
+torchvision>=0.17;   sys_platform != "darwin" or platform_machine != "x86_64"
+numpy;               sys_platform != "darwin" or platform_machine != "x86_64"
+diffusers>=0.30;     sys_platform != "darwin" or platform_machine != "x86_64"
+transformers>=4.44;  sys_platform != "darwin" or platform_machine != "x86_64"
+accelerate>=0.34;    sys_platform != "darwin" or platform_machine != "x86_64"
 safetensors
 pillow
 pillow-heif          # iPhone HEIC/HEIF photos
