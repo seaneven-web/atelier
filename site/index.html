@@ -34,7 +34,7 @@
   .num { font:500 12px/1 "IBM Plex Mono",monospace; color:var(--accent); letter-spacing:.08em; margin-bottom:8px; display:block; }
   .steps { counter-reset:s; display:grid; gap:12px; }
   .step { display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:start; }
-  .step i { font:500 14px/1 "IBM Plex Mono",monospace; color:var(--accent); background:var(--accent-soft); border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-style:normal; }
+  .step > i { font:500 14px/1 "IBM Plex Mono",monospace; color:var(--accent); background:var(--accent-soft); border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-style:normal; }
   .step b { display:block; } .step span { color:var(--muted); font-size:15px; }
   .priv { background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:12px; padding:20px 24px; }
   .priv ul { margin:10px 0 0; padding-left:20px; color:var(--muted); } .priv li { margin:4px 0; }
@@ -70,7 +70,7 @@
     <p class="muted">Like any apprentice, it starts by studying your work — then it takes the parts of the job you'd happily hand off.</p>
     <div class="steps" style="margin-top:18px">
       <div class="step"><i>1</i><div><b>It studies your work.</b><span>Drop in a few pieces — JPGs, PNGs, phone photos (HEIC is fine; photographed drawings are cropped to the sheet of paper). Atelier reads your palette, tone and brush texture into a small style book: a file in the app's folder that describes <em>your</em> hand, and nothing else.</span></div></div>
-      <div class="step"><i>2</i><div><b>You draw the outline.</b><span>Sketch it the way you always do, photograph or scan it, drop it in. Add a few words if you like — <i>a fox reading under a tree</i>, <i>warm, quiet</i>. A slider sets how much freedom the apprentice gets with your lines: keep them exactly, or let it reinterpret.</span></div></div>
+      <div class="step"><i>2</i><div><b>You draw the outline.</b><span>Sketch it the way you always do, photograph or scan it, drop it in. Add a few words if you like — <em>a fox reading under a tree</em>, <em>warm, quiet</em>. A slider sets how much freedom the apprentice gets with your lines: keep them exactly, or let it reinterpret.</span></div></div>
       <div class="step"><i>3</i><div><b>It lays in the colour — in your style.</b><span>The apprentice paints your outline with your palette and brushwork (neural style transfer from the pieces your words point at; a small text-to-image model fills in what you describe, in your medium). Mood words — warm, quiet, dramatic, dark — steer the pieces it works from and grade the colour.</span></div></div>
       <div class="step"><i>4</i><div><b>You do the shading and the finishing.</b><span>Ask for one take or eight, pick the one that feels right, and take it back to your desk for the detail only you would add. Every result lands in a gallery folder you own, next to your originals.</span></div></div>
     </div>
