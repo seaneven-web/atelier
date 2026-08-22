@@ -112,7 +112,7 @@
 
 <div class="wrap">
   <header>
-    <h1>Atelier<small>Give it a few of the artist's pieces, say what you'd like to see, and it paints in that style. This page previews the mood-and-palette half; the full engine on your Mac also draws subjects.</small></h1>
+    <h1>Atelier<small>Give it a few of the artist's pieces, say what you'd like to see, and it paints in that style. This page previews the mood-and-palette half in your browser; the <a href="https://seaneven-web.github.io/atelier/" target="_blank" rel="noopener" style="color:var(--accent)">desktop app (Mac · Windows · Linux)</a> draws subjects and sketches too — privately, on your own computer.</small></h1>
     <div class="status"><i class="dot" id="dot1"></i> pieces <i class="dot" id="dot2"></i> style <i class="dot" id="dot3"></i> painting</div>
   </header>
 
@@ -451,7 +451,7 @@ function showRecipe(r, title, anchor) {
 function showHandoff(r, anchor) {
   $("handoff").hidden = false;
   const attrs = Object.fromEntries(Object.entries(r.attrs).filter(([, v]) => Math.abs(v) > .05).map(([k, v]) => [k, +v.toFixed(2)]));
-  $("cmd").textContent = `# same words → the full engine on your Mac: SD-Turbo draws the subject, neural style transfer repaints it in the style\npython atelier.py paint ${JSON.stringify(r.text)} --portfolio ~/portfolio --count ${$("n").value} --temp ${$("temp").value}${anchor != null && S.pieces[anchor] ? ` --content ${JSON.stringify("~/portfolio/" + S.pieces[anchor].name)}` : ""}\n\n# or hand the recipe to the Claude studio's paint tool (python atelier_claude.py)\n${JSON.stringify({ title: r.text, attributes: attrs, tags: r.tags, temperature: +$("temp").value, count: +$("n").value }, null, 2)}`;
+  $("cmd").textContent = `# the desktop app does all of this with sliders: https://seaneven-web.github.io/atelier/\n# same words → the engine: SD-Turbo draws the subject, neural style transfer repaints it in the style\npython atelier.py paint ${JSON.stringify(r.text)} --portfolio ~/portfolio --count ${$("n").value} --temp ${$("temp").value}${anchor != null && S.pieces[anchor] ? ` --content ${JSON.stringify("~/portfolio/" + S.pieces[anchor].name)}` : ""}\n\n# or hand the recipe to the Claude studio's paint tool (python atelier_claude.py)\n${JSON.stringify({ title: r.text, attributes: attrs, tags: r.tags, temperature: +$("temp").value, count: +$("n").value }, null, 2)}`;
 }
 function variations(i) {
   const p = S.lastPicks[i]; if (!p || S.busy) return;
