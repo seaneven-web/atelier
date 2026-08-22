@@ -1,6 +1,6 @@
 # Atelier
 
-**Paint anything in one artist's style — on their own computer. Their work never leaves the machine.**
+**An apprentice for your studio.** You draw the outline, it lays in the colour — in your palette, your hand — and you do the shading. It learns your style from your own pieces and runs on your own computer; your work never leaves the machine.
 
 Give Atelier a few of an artist's pieces (JPG, PNG, phone HEIC — photographed drawings are cropped to the paper) and say what you'd like to see. It draws what you describe, then repaints it the way the artist paints. Start from a sketch if you like, turn the style up or down, ask for one piece or eight.
 

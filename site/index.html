@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier — paint anything in one artist's style, privately</title>
-<meta name="description" content="Atelier learns one artist's style from their own pieces and paints whatever you describe in that style — entirely on your computer. Their art never leaves the machine.">
+<title>Atelier — an apprentice for your studio</title>
+<meta name="description" content="Atelier is an AI apprentice that learns your style from your own work. You draw the outline, it lays in the colour in your hand, you do the shading and the finishing. Entirely on your computer — your art never leaves the machine.">
 <link rel="icon" href="assets/icon-256.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400;9..144,500;9..144,600,50&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -52,8 +52,8 @@
 <div class="wrap">
   <nav><b>Atelier</b><a href="#how">How it works</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
 
-  <h1>Paint anything in one artist's style — on their own computer.</h1>
-  <p class="lede">Give Atelier a few of an artist's pieces and say what you'd like to see — <i>a hippo eating cheese</i>, <i>the harbour at dusk</i>, <i>this sketch, finished</i>. It paints it the way they paint. Their work never leaves the machine, and it is never used to train anyone's AI.</p>
+  <h1>An apprentice for your studio.</h1>
+  <p class="lede"><b>You draw the outline. It lays in the colour — in your palette, your hand. You do the shading.</b> Atelier is an AI apprentice that learns your style from your own pieces and takes the legwork off your desk, so you can spend your time on the finer details. It runs on your own computer; your work never leaves it and is never used to train anyone's AI.</p>
   <div class="cta">
     <a class="btn primary" href="#download">Download for Mac, Windows or Linux</a>
     <a class="btn" href="https://github.com/seaneven-web/atelier">View the code</a>
@@ -61,29 +61,29 @@
   <p class="note">Free and open source. Unsigned builds (see the Download notes). The app fetches two pretrained models once (~3 GB), then runs offline.</p>
 
   <figure class="hero-img" style="margin-top:38px">
-    <img src="assets/app.png" alt="The Atelier app: the artist's pieces, a prompt with sliders, and the painted results">
-    <figcaption class="cap">The whole app is three benches: the artist's work · ask for a piece (with sliders for style strength, sketch freedom, quality, detail and how many) · the pieces.</figcaption>
+    <img src="assets/app.png" alt="The Atelier app: your pieces, your outline and a prompt with sliders, and the coloured results">
+    <figcaption class="cap">Three benches: <b>your work</b> (the apprentice studies it) · <b>the brief</b> — your outline or sketch, a few words, and how much freedom to give it · <b>the pieces</b>, coloured in your style and ready for your hand.</figcaption>
   </figure>
 
   <section id="how">
-    <h2>How it works</h2>
-    <p class="muted">Two pretrained models that are known to work, and one small index that is specific to the artist.</p>
+    <h2>How the apprenticeship works</h2>
+    <p class="muted">Like any apprentice, it starts by studying your work — then it takes the parts of the job you'd happily hand off.</p>
     <div class="steps" style="margin-top:18px">
-      <div class="step"><i>1</i><div><b>The artist's work becomes a style book.</b><span>Drop in JPGs, PNGs or phone photos (HEIC is fine; photographed drawings are cropped to the sheet of paper). Atelier reads each piece's palette, tone and brush texture into a small per-artist index — a file in the app's folder, nothing more.</span></div></div>
-      <div class="step"><i>2</i><div><b>Your words are drawn.</b><span>A text-to-image model (SD-Turbo, a diffusion UNet) draws what you describe — in the artist's medium, because the style book tells it whether this is coloured pencil on paper or oil on canvas. Or start from a sketch: the words reinterpret it as much or as little as you like.</span></div></div>
-      <div class="step"><i>3</i><div><b>It is repainted in the style.</b><span>Neural style transfer (VGG19, the method behind the “deep style” apps) repaints the drawing with the artist's palette and brushwork, using the pieces your words point at. Mood words — warm, quiet, dramatic, dark — pick the pieces and grade the colour.</span></div></div>
-      <div class="step"><i>4</i><div><b>You choose.</b><span>Ask for one piece or eight, turn the style up or down, keep a seed to get the same piece again, click any result for variations. Everything lands in a gallery folder you own.</span></div></div>
+      <div class="step"><i>1</i><div><b>It studies your work.</b><span>Drop in a few pieces — JPGs, PNGs, phone photos (HEIC is fine; photographed drawings are cropped to the sheet of paper). Atelier reads your palette, tone and brush texture into a small style book: a file in the app's folder that describes <em>your</em> hand, and nothing else.</span></div></div>
+      <div class="step"><i>2</i><div><b>You draw the outline.</b><span>Sketch it the way you always do, photograph or scan it, drop it in. Add a few words if you like — <i>a fox reading under a tree</i>, <i>warm, quiet</i>. A slider sets how much freedom the apprentice gets with your lines: keep them exactly, or let it reinterpret.</span></div></div>
+      <div class="step"><i>3</i><div><b>It lays in the colour — in your style.</b><span>The apprentice paints your outline with your palette and brushwork (neural style transfer from the pieces your words point at; a small text-to-image model fills in what you describe, in your medium). Mood words — warm, quiet, dramatic, dark — steer the pieces it works from and grade the colour.</span></div></div>
+      <div class="step"><i>4</i><div><b>You do the shading and the finishing.</b><span>Ask for one take or eight, pick the one that feels right, and take it back to your desk for the detail only you would add. Every result lands in a gallery folder you own, next to your originals.</span></div></div>
     </div>
   </section>
 
   <section id="privacy">
     <h2>Private by construction</h2>
     <div class="priv">
-      <b>Your art stays in one folder on your computer — and nowhere else.</b>
+      <b>An apprentice that works in your studio — not in someone else's cloud.</b> Your art stays in one folder on your computer, and nowhere else.
       <ul>
         <li>No account, no upload, no server of ours. The app is a local program that opens a window.</li>
         <li>The only network access is a one-time download of two public, pretrained models. After that, switch the network off: it keeps working.</li>
-        <li>Nothing here trains a shared model on your work. The “style book” is a small file describing <em>this</em> artist's palette and texture, stored in the app's folder and used only to paint for them. Delete the folder and it is gone.</li>
+        <li>Nothing here trains a shared model on your work. The “style book” is a small file describing <em>your</em> palette and texture, stored in the app's folder and used only to paint for you. Delete the folder and the apprentice forgets everything.</li>
         <li>Open source, so all of this can be checked — and the sandbox folder is a plain folder you can open any time from inside the app.</li>
       </ul>
     </div>
@@ -92,8 +92,8 @@
   <section>
     <h2>The knobs</h2>
     <table>
-      <tr><th>Style strength</th><td>How hard the style is pushed onto the drawing: gentle tint → fully repainted brushwork.</td></tr>
-      <tr><th>Sketch freedom</th><td>With a sketch as the starting point: faithful to the sketch → only loosely inspired by it. Or repaint the sketch exactly as it is.</td></tr>
+      <tr><th>Style strength</th><td>How hard your style is pushed onto the piece: a gentle tint of your palette → fully repainted in your brushwork.</td></tr>
+      <tr><th>Sketch freedom</th><td>How much licence the apprentice gets with your outline: faithful to every line → only loosely inspired by it. Or colour the sketch exactly as it is.</td></tr>
       <tr><th>Quality · detail</th><td>Iterations and working resolution — finer results take longer. About a minute per piece on a recent laptop at the defaults.</td></tr>
       <tr><th>Pieces · seed</th><td>How many to paint (they are ranked; the first is the one that took the style best) and an optional seed so the same words give the same piece again.</td></tr>
     </table>
@@ -116,11 +116,11 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requiremen
   </section>
 
   <section>
-    <h2>Honest limits</h2>
-    <p>Style transfer carries an artist's palette, texture and tone very well; it carries their <em>composition</em> less well — the drawing's layout comes from the content model (or from your sketch, which is the best way to make it yours). More pieces help, and cleanly photographed pieces help most. A fine-tune of the content model on the artist's work (a LoRA) would learn composition too and is the natural next step; it needs a real GPU.</p>
+    <h2>What an apprentice can and can't do</h2>
+    <p>It carries your palette, texture and tone very well; it carries your <em>composition</em> less well — which is exactly why the outline should be yours. More pieces help it learn, and cleanly photographed pieces help most. Asked for something without a sketch, it composes the scene itself (a small text-to-image model) and then paints it in your style — handy, but less yours. A deeper apprenticeship (fine-tuning the content model on your work, a LoRA) would learn your composition too; it needs a real GPU and is the natural next step.</p>
   </section>
 
-  <footer>Atelier is open source (<a href="https://github.com/seaneven-web/atelier">GitHub</a>). Pretrained components: VGG19 (ImageNet weights, via torchvision) and Stable Diffusion Turbo (Stability AI, under its own licence) — both downloaded from their public sources by the app, never redistributed here. Made for an artist who wanted to play with his own style without giving it away.</footer>
+  <footer>Atelier is open source (<a href="https://github.com/seaneven-web/atelier">GitHub</a>). Pretrained components: VGG19 (ImageNet weights, via torchvision) and Stable Diffusion Turbo (Stability AI, under its own licence) — both downloaded from their public sources by the app, never redistributed here. Made for an artist who wanted an apprentice — not a replacement — and wanted to keep his style his own.</footer>
 </div>
 </body>
 </html>
