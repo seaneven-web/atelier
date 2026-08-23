@@ -52,6 +52,15 @@
     <div class="log" id="pf-log"></div>
     <div class="thumbs" id="thumbs"></div>
     <div class="tags" id="pf-meta"></div>
+    <div class="eye" id="eye-box" hidden>
+      <div class="eye-head">
+        <div><b>The apprentice's eye</b> <span class="muted" id="eye-state">not trained yet</span></div>
+        <button class="quiet" id="train-eye">Train on this portfolio</button>
+      </div>
+      <p class="small muted" id="eye-why">A small autoencoder trained here, on your pieces only, for a few minutes. It gives the apprentice a sense of your own paint — colours and marks it has actually seen — so the styling leans on your vocabulary instead of a generic one. Optional; nothing is uploaded.</p>
+      <div class="progress" id="eye-prog" hidden><i></i></div>
+      <div class="log" id="eye-log"></div>
+    </div>
   </section>
 
   <!-- ask -->
@@ -82,6 +91,8 @@
         <label id="l-freedom"><span>sketch freedom <b id="v-freedom">0.55</b></span><input type="range" id="freedom" min="0.1" max="0.95" step="0.05" value="0.55"><small>faithful ← → loosely inspired · applies when a sketch is the starting point</small></label>
         <label><span>quality <b id="v-iters">250</b></span><input type="range" id="iters" min="60" max="500" step="10" value="250"><small>iterations · more = finer, slower</small></label>
         <label><span>detail <b id="v-res">512</b>px</span><input type="range" id="res" min="256" max="640" step="64" value="512"><small>working resolution · 512 is a good default</small></label>
+        <label><span>composition lock <b id="v-structure">0.50</b></span><input type="range" id="structure" min="0" max="1" step="0.05" value="0.5"><small>keeps your layout · 0 lets the style rewrite it</small></label>
+        <label id="l-eye"><span>apprentice's eye <b id="v-eye">1.00</b></span><input type="range" id="eye" min="0" max="1.5" step="0.05" value="1"><small>weight of your trained eye (train it above)</small></label>
         <label><span>pieces <b id="v-count">4</b></span><input type="range" id="count" min="1" max="8" step="1" value="4"><small>each takes about a minute</small></label>
         <label><span>seed</span><input id="seed" placeholder="random" style="max-width:120px"><small>same seed + same words = same piece</small></label>
       </div>

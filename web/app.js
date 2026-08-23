@@ -72,6 +72,15 @@ function showPortfolio(info) {
   $("pf-meta").innerHTML = (info.count >= 1 ? `${info.count} piece(s)` : "") +
     (info.medium ? ` · reads as: <i>${info.medium}</i>` : "") +
     (tags.length ? `<br>words it can aim for: ${tags.map(([t, c]) => `<span class="chip tag">${t} · ${c}</span>`).join("")}` : "");
+  const eye = info.eye || {};
+  $("eye-box").hidden = info.count < 1;
+  $("eye-box").classList.toggle("trained", !!eye.trained);
+  $("eye-state").textContent = eye.trained
+    ? `trained · ${eye.patches} patches · ${eye.seconds}s`
+    : "not trained yet — optional";
+  $("train-eye").textContent = eye.trained ? "Train again" : "Train on this portfolio";
+  $("l-eye").style.opacity = eye.trained ? 1 : .45;
+  $("l-eye").title = eye.trained ? "" : "train the eye above to use this";
   const ok = info.count >= 1;
   $("b2").classList.toggle("off", !ok); $("b3").classList.toggle("off", !ok && !S.last);
   if (ok) $("prompt").focus();
@@ -83,6 +92,17 @@ drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); });
 drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("files").click(); } });
 $("pf").addEventListener("change", () => { S.portfolio = $("pf").value || null; $("pf-name").hidden = !!S.portfolio; if (S.portfolio) loadPortfolio(S.portfolio); else { $("thumbs").innerHTML = ""; $("pf-meta").textContent = ""; } });
+
+$("train-eye").addEventListener("click", async () => {
+  if (!S.portfolio) { alert("add the artist's pieces first"); return; }
+  $("train-eye").disabled = true; $("eye-prog").hidden = false; $("eye-prog").classList.remove("done"); $("eye-log").textContent = "";
+  try {
+    const { job } = await api("/api/train_eye", { portfolio: S.portfolio, minutes: 4 });
+    await poll(job, logger($("eye-log")), $("eye-prog"));
+    await loadPortfolio(S.portfolio);
+  } catch (e) { logger($("eye-log"))("error: " + e.message); }
+  $("train-eye").disabled = false;
+});
 
 // ---------------------------------------------------------------- sketch
 const sdrop = $("sdrop");
@@ -102,9 +122,9 @@ $("sclear").addEventListener("click", e => { e.preventDefault(); S.sketch = null
 $("smode").addEventListener("change", () => {});
 
 // ---------------------------------------------------------------- sliders
-for (const id of ["strength", "freedom", "iters", "res", "count"]) {
+for (const id of ["strength", "freedom", "iters", "res", "count", "structure", "eye"]) {
   const el = $(id), out = $("v-" + id);
-  const show = () => out.textContent = id === "strength" || id === "freedom" ? (+el.value).toFixed(2) : el.value;
+  const show = () => out.textContent = ["strength", "freedom", "structure", "eye"].includes(id) ? (+el.value).toFixed(2) : el.value;
   el.addEventListener("input", show); show();
 }
 
@@ -118,6 +138,7 @@ async function paint(extra, storedBody) {
     if (!prompt && !S.sketch) { $("prompt").focus(); return; }
     body = Object.assign({ portfolio: S.portfolio, prompt, count: +$("count").value, strength: +$("strength").value,
       freedom: +$("freedom").value, iters: +$("iters").value, res: +$("res").value, seed: $("seed").value.trim() || null,
+      structure: +$("structure").value, eye: +$("eye").value,
       sketch: S.sketch, mode: $("smode").value, size: 768 }, extra || {});
   }
   $("viewing").hidden = true; S.viewing = null;
@@ -196,7 +217,7 @@ function applySettings(st) {
   if (!st) return;
   if (st.portfolio) { S.portfolio = st.portfolio; $("pf").value = st.portfolio; loadPortfolio(st.portfolio); }
   $("prompt").value = st.prompt || "";
-  for (const k of ["strength", "freedom", "iters", "res", "count"]) if (st[k] != null) { $(k).value = st[k]; $(k).dispatchEvent(new Event("input")); }
+  for (const k of ["strength", "freedom", "iters", "res", "count", "structure", "eye"]) if (st[k] != null) { $(k).value = st[k]; $(k).dispatchEvent(new Event("input")); }
   $("seed").value = st.seed || "";
   if (st.sketch) { S.sketch = st.sketch; $("spreview").src = "/sketches/" + st.sketch; $("spreview").hidden = false; $("sdrop-text").hidden = true; $("srow").hidden = false; $("smode").value = st.mode || "sketch"; }
   else { S.sketch = null; $("spreview").hidden = true; $("sdrop-text").hidden = false; $("srow").hidden = true; }

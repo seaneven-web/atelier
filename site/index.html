@@ -50,7 +50,7 @@
 </head>
 <body>
 <div class="wrap">
-  <nav><b>Atelier</b><a href="#how">How it works</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
+  <nav><b>Atelier</b><a href="#how">How it works</a><a href="#eye">The eye</a><a href="#controls">Controls</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
 
   <h1>An apprentice for your studio.</h1>
   <p class="lede"><b>You draw the outline. It lays in the colour — in your palette, your hand. You do the shading.</b> Atelier is an AI apprentice that learns your style from your own pieces and takes the legwork off your desk, so you can spend your time on the finer details. It runs on your own computer; your work never leaves it and is never used to train anyone's AI.</p>
@@ -58,11 +58,11 @@
     <a class="btn primary" href="#download">Download for Mac, Windows or Linux</a>
     <a class="btn" href="https://github.com/seaneven-web/atelier">View the code</a>
   </div>
-  <p class="note">Free and open source. Unsigned builds (see the Download notes). The app fetches two pretrained models once (~3 GB), then runs offline.</p>
+  <p class="note">Free and open source. Unsigned builds (see the Download notes). The app fetches two pretrained models once (~3 GB), then runs offline. <b>Version 0.1.4</b> — sharper brushwork, a composition lock, an apprentice you can train on your own work, and a log of every run.</p>
 
   <figure class="hero-img" style="margin-top:38px">
     <img src="assets/app.png" alt="The Atelier app: your pieces, your outline and a prompt with sliders, and the coloured results">
-    <figcaption class="cap">Three benches: <b>your work</b> (the apprentice studies it) · <b>the brief</b> — your outline or sketch, a few words, and how much freedom to give it · <b>the pieces</b>, coloured in your style and ready for your hand.</figcaption>
+    <figcaption class="cap">Three benches and a studio log: <b>your work</b> (the apprentice studies it, and can be trained on it) · <b>the brief</b> — your outline or sketch, a few words, and six controls · <b>the pieces</b>, coloured in your style and ready for your hand. Every run is kept in the <b>History</b> rail on the left.</figcaption>
   </figure>
 
   <section id="how">
@@ -71,8 +71,9 @@
     <div class="steps" style="margin-top:18px">
       <div class="step"><i>1</i><div><b>It studies your work.</b><span>Drop in a few pieces — JPGs, PNGs, phone photos (HEIC is fine; photographed drawings are cropped to the sheet of paper). Atelier reads your palette, tone and brush texture into a small style book: a file in the app's folder that describes <em>your</em> hand, and nothing else.</span></div></div>
       <div class="step"><i>2</i><div><b>You draw the outline.</b><span>Sketch it the way you always do, photograph or scan it, drop it in. Add a few words if you like — <em>a fox reading under a tree</em>, <em>warm, quiet</em>. A slider sets how much freedom the apprentice gets with your lines: keep them exactly, or let it reinterpret.</span></div></div>
-      <div class="step"><i>3</i><div><b>It lays in the colour — in your style.</b><span>The apprentice paints your outline with your palette and brushwork (neural style transfer from the pieces your words point at; a small text-to-image model fills in what you describe, in your medium). Mood words — warm, quiet, dramatic, dark — steer the pieces it works from and grade the colour.</span></div></div>
-      <div class="step"><i>4</i><div><b>You do the shading and the finishing.</b><span>Ask for one take or eight, pick the one that feels right, and take it back to your desk for the detail only you would add. Every result lands in a gallery folder you own, next to your originals.</span></div></div>
+      <div class="step"><i>3</i><div><b>It lays in the colour — in your style.</b><span>The apprentice paints your outline with your palette and brushwork (neural style transfer from the pieces your words point at; a small text-to-image model fills in what you describe, in your medium). Mood words — warm, quiet, dramatic, dark — steer the pieces it works from and grade the colour. Your marks are read at the size you actually made them, so the texture stays crisp instead of smearing.</span></div></div>
+      <div class="step"><i>4</i><div><b>Your composition is held.</b><span>Layout lives in the broad shapes of a picture; brushwork and palette live in the fine ones. The <b>composition lock</b> keeps the large shapes of <em>your</em> drawing while the styling rewrites everything above them — the horizon stays a horizon and your trees stay trees, instead of dissolving into someone else's shapes.</span></div></div>
+      <div class="step"><i>5</i><div><b>You do the shading and the finishing.</b><span>Ask for one take or eight, pick the one that feels right, and take it back to your desk for the detail only you would add. Every result lands in a gallery folder you own, and every run stays in the History rail — reopen it weeks later, run it again, or load its settings and change one thing.</span></div></div>
     </div>
   </section>
 
@@ -83,19 +84,29 @@
       <ul>
         <li>No account, no upload, no server of ours. The app is a local program that opens a window.</li>
         <li>The only network access is a one-time download of two public, pretrained models. After that, switch the network off: it keeps working.</li>
-        <li>Nothing here trains a shared model on your work. The “style book” is a small file describing <em>your</em> palette and texture, stored in the app's folder and used only to paint for you. Delete the folder and the apprentice forgets everything.</li>
+        <li>Nothing here trains a shared model on your work. The “style book” — and the apprentice's eye, if you train one — are files in the app's folder describing <em>your</em> palette and marks, used only to paint for you. Delete the folder and the apprentice forgets everything.</li>
+        <li>The History rail is just the gallery folder: every run is a small record next to its images, on your disk. No sync, no account, nothing phoning home.</li>
         <li>Open source, so all of this can be checked — and the sandbox folder is a plain folder you can open any time from inside the app.</li>
       </ul>
     </div>
   </section>
 
-  <section>
-    <h2>The knobs</h2>
+  <section id="eye">
+    <h2>The apprentice's own eye</h2>
+    <p>Press one button and Atelier trains a small model — a variational autoencoder — on your pieces and nothing else. It takes a few minutes on your own machine, and it learns one thing: what your paint looks like up close, at the scale you actually make marks.</p>
+    <p>From then on it sits over the apprentice's shoulder, asking of every patch: <em>is this something I have seen this artist do?</em> The general-purpose network underneath knows a million photographs of the world, which is why, pushed hard, it starts smuggling other people's faces and objects into your picture. Your own eye knows only your work, and pulls the picture back toward it.</p>
+    <p class="muted">Optional, and yours: the trained eye is a file in your folder, trained on your pieces, used only to paint for you — delete it and the apprentice forgets. Trained on a handful of pieces it learns your colour and the feel of your marks, not how you draw a hand: a nudge in the right direction, not a second artist. The architecture is adapted from a face-generation VAE we built for a computer-vision course, including its most useful lesson — the plain autoencoder beat the adversarial version we wrote alongside it.</p>
+  </section>
+
+  <section id="controls">
+    <h2>The controls</h2>
     <table>
-      <tr><th>Style strength</th><td>How hard your style is pushed onto the piece: a gentle tint of your palette → fully repainted in your brushwork.</td></tr>
+      <tr><th>Style strength</th><td>How hard your style is pushed onto the piece: a gentle tint of your palette → fully repainted in your brushwork. Around 0.6–0.9 keeps the drawing intact.</td></tr>
+      <tr><th>Composition lock</th><td>How much of <em>your</em> layout survives the styling. 0 lets the style rewrite the big shapes; 0.5 (the default) keeps your horizon, your figures, your framing.</td></tr>
       <tr><th>Sketch freedom</th><td>How much licence the apprentice gets with your outline: faithful to every line → only loosely inspired by it. Or colour the sketch exactly as it is.</td></tr>
-      <tr><th>Quality · detail</th><td>Iterations and working resolution — finer results take longer. About a minute per piece on a recent laptop at the defaults.</td></tr>
-      <tr><th>Pieces · seed</th><td>How many to paint (they are ranked; the first is the one that took the style best) and an optional seed so the same words give the same piece again.</td></tr>
+      <tr><th>Apprentice's eye</th><td>How much weight your trained eye carries, once you have trained one.</td></tr>
+      <tr><th>Quality · detail</th><td>Iterations and working resolution — finer results take longer. About a minute per piece at the defaults.</td></tr>
+      <tr><th>Pieces · seed</th><td>How many to paint (the first is the one that took the style best) and an optional seed so the same brief gives the same piece again.</td></tr>
     </table>
   </section>
 
@@ -117,7 +128,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requiremen
 
   <section>
     <h2>What an apprentice can and can't do</h2>
-    <p>It carries your palette, texture and tone very well; it carries your <em>composition</em> less well — which is exactly why the outline should be yours. More pieces help it learn, and cleanly photographed pieces help most. Asked for something without a sketch, it composes the scene itself (a small text-to-image model) and then paints it in your style — handy, but less yours. A deeper apprenticeship (fine-tuning the content model on your work, a LoRA) would learn your composition too; it needs a real GPU and is the natural next step.</p>
+    <p>It carries your palette, texture and tone very well; it carries your <em>composition</em> less well — which is exactly why the outline should be yours, and why the composition lock exists. More pieces help it learn, and cleanly photographed pieces help most. Asked for something without a sketch, it composes the scene itself (a small text-to-image model) and then paints it in your style — handy, but less yours. A deeper apprenticeship (fine-tuning the content model on your work, a LoRA) would learn your composition too; it needs a real GPU and is the natural next step.</p>
   </section>
 
   <footer>Atelier is open source (<a href="https://github.com/seaneven-web/atelier">GitHub</a>). Pretrained components: VGG19 (ImageNet weights, via torchvision) and Stable Diffusion Turbo (Stability AI, under its own licence) — both downloaded from their public sources by the app, never redistributed here. Made for an artist who wanted an apprentice — not a replacement — and wanted to keep his style his own.</footer>

@@ -87,3 +87,9 @@ footer { color: var(--muted); font-size: 13px; margin-top: 26px; line-height: 1.
 .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: flex; align-items: center; justify-content: center; z-index: 9; cursor: zoom-out; }
 .lightbox img { max-width: 94vw; max-height: 94vh; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) { .progress i { animation: none; width: 100%; } }
+
+.eye { margin-top: 14px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 14px; background: var(--surface-2); }
+.eye-head { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.eye-head .muted { font: 400 12px/1.4 ui-monospace, Menlo, monospace; }
+.eye p { margin: 6px 0 0; max-width: 70ch; }
+.eye.trained { border-left-color: var(--ok); }

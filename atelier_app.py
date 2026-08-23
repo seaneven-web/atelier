@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 APP_NAME = "Atelier"
 
 # --------------------------------------------------------------------------- the sandbox folder (set BEFORE importing torch / atelier)
@@ -206,10 +206,27 @@ def job_add_portfolio(progress, name: str, files: List[dict], paper: bool) -> di
     progress(f"style book ready: {len(eng.book.files)} pieces, {len(eng.book.tag_counts)} words from file names")
     return portfolio_info(name)
 
+def eye_status(name: str) -> dict:
+    """Has the apprentice's own VAE been trained on this portfolio?"""
+    try:
+        import torch
+        import atelier_vae as V
+        files = [f for f in sorted(portfolio_dir(name).iterdir()) if f.suffix.lower() in A().IMAGE_EXT]
+        if not files: return {"trained": False}
+        p = V.model_path(files)
+        if not p.exists(): return {"trained": False}
+        side = p.with_suffix(".json")
+        meta = json.loads(side.read_text()) if side.exists() else torch.load(p, map_location="cpu").get("meta", {})
+        return {"trained": True, "patches": meta.get("patches"), "steps": meta.get("steps"),
+                "seconds": round(meta.get("seconds", 0)), "best_val": round(meta.get("best_val", 0))}
+    except Exception as e:
+        return {"trained": False, "error": str(e)}
+
 def portfolio_info(name: str) -> dict:
     d = portfolio_dir(name)
     files = sorted(f for f in d.iterdir() if f.suffix.lower() in A().IMAGE_EXT)
-    info = {"name": name, "count": len(files), "pieces": [{"name": f.name, "thumb": thumb_b64(f)} for f in files[:60]]}
+    info = {"name": name, "count": len(files), "pieces": [{"name": f.name, "thumb": thumb_b64(f)} for f in files[:60]],
+            "eye": eye_status(name)}
     eng = ENGINES.get(name)
     if eng is not None:
         b = eng.book
@@ -242,6 +259,16 @@ def job_download_models(progress) -> dict:
     os.environ["HF_HUB_OFFLINE"] = "1"
     return models_status()
 
+def job_train_eye(progress, name: str, minutes: float) -> dict:
+    """Train the artist's own VAE on this portfolio (the apprentice's eye). Local, minutes, no network."""
+    import atelier_vae as V
+    files = [f for f in sorted(portfolio_dir(name).iterdir()) if f.suffix.lower() in A().IMAGE_EXT]
+    if len(files) < 1: raise RuntimeError("add some pieces first")
+    progress(f"studying {len(files)} piece(s) — sampling patches at the artist's own brush scale…")
+    model, meta = V.load_or_train(files, A().pick_device(), minutes=float(minutes), log=progress, force=True)
+    progress(f"done in {meta['seconds']:.0f}s · best held-out score at step {meta['best_step']}")
+    return eye_status(name)
+
 def job_paint(progress, p: dict) -> dict:
     name = p["portfolio"]
     res, iters, count = int(p.get("res", 512)), int(p.get("iters", 250)), int(p.get("count", 4))
@@ -259,7 +286,8 @@ def job_paint(progress, p: dict) -> dict:
     seed = int(p["seed"]) if p.get("seed") not in (None, "", "random") else None
     temp = float(p.get("strength", 0.8))
     picks, info = eng.paint(recipe, count, temp, seed, content=content, log=progress,
-                            sketch=sketch, freedom=float(p.get("freedom", 0.55)), iters=iters)
+                            sketch=sketch, freedom=float(p.get("freedom", 0.55)), iters=iters,
+                            structure=float(p.get("structure", 0.5)), eye=float(p.get("eye", 1.0)))
     paths, sheet = A().save_results(picks, info, recipe, int(p.get("size", 768)), False)
     recipe_view = {"text": recipe.text, "attributes": recipe.attrs, "tags": recipe.tags, "ignored": recipe.ignored,
                    "content_prompt": N().content_prompt(recipe.text, recipe, eng.book) if not content else None,
@@ -374,6 +402,9 @@ class Handler(BaseHTTPRequestHandler):
                 name = f"sketch_{int(time.time())}_{uuid.uuid4().hex[:4]}.jpg"
                 im.save(DATA_DIR / "sketches" / name, quality=92)
                 return self._json(200, {"sketch": name, "url": f"/sketches/{name}"})
+            if p == "/api/train_eye":
+                return self._json(200, {"job": JOBS.start("eye", job_train_eye, body.get("portfolio") or "portfolio",
+                                                          float(body.get("minutes", 4)))})
             if p == "/api/models/download":
                 return self._json(200, {"job": JOBS.start("models", job_download_models)})
             if p == "/api/paint":

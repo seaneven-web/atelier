@@ -35,6 +35,8 @@ from PIL import Image
 import atelier as A
 
 STYLE_RES = 512          # working resolution for style transfer
+STYLE_CROPS = 4          # native-scale crops per piece — brush marks at their true size
+BOOK_VERSION = 2         # bump to invalidate cached style books
 CONTENT_RES = 512        # SD-Turbo native
 
 # --------------------------------------------------------------------------- VGG19 features
@@ -71,6 +73,23 @@ def features(x: torch.Tensor, net, device) -> Tuple[Dict[int, torch.Tensor], Dic
         if i >= last: break
     return out, content
 
+def _style_views(f: Path, res: int) -> List[torch.Tensor]:
+    """[whole piece fitted to res] + up to STYLE_CROPS res-sized crops at the piece's NATIVE scale.
+    Consistent framing, true brush scale — the lesson from the face-crop VAE this engine borrows from."""
+    big = A.load_image(f, min(1600, res * 3))
+    _, H, W = big.shape
+    side = min(H, W)
+    whole = big[:, (H - side) // 2:(H - side) // 2 + side, (W - side) // 2:(W - side) // 2 + side].float().div(255)[None]
+    views = [F.interpolate(whole, size=(res, res), mode="bilinear", align_corners=False, antialias=True)]
+    if H >= res and W >= res:                       # deterministic grid of native-scale crops
+        ys = [0, H - res] if H > res else [0]
+        xs = [0, W - res] if W > res else [0]
+        spots = [(y, x) for y in ys for x in xs][:STYLE_CROPS]
+        if len(spots) < STYLE_CROPS: spots.append(((H - res) // 2, (W - res) // 2))
+        for y, x in spots:
+            views.append(big[:, y:y + res, x:x + res].float().div(255)[None])
+    return views
+
 def gram(f: torch.Tensor) -> torch.Tensor:
     b, c, h, w = f.shape
     f = f.reshape(b, c, h * w)
@@ -86,7 +105,7 @@ class StyleBook:
         files = A.find_images(self.root)
         if len(files) < 1:
             raise SystemExit(f"no images in {self.root}")
-        sig = hashlib.md5("|".join(f"{f}:{f.stat().st_mtime_ns}" for f in files).encode()).hexdigest()[:12]
+        sig = hashlib.md5(("|".join(f"{f}:{f.stat().st_mtime_ns}" for f in files) + f"|v{BOOK_VERSION}").encode()).hexdigest()[:12]
         A.MODEL_DIR.mkdir(parents=True, exist_ok=True)
         self.cache = A.MODEL_DIR / f"stylebook_{sig}.pt"
         if self.cache.exists():
@@ -98,17 +117,21 @@ class StyleBook:
             net = vgg().to(device)
             for i, f in enumerate(files):
                 try:
-                    t = A.load_image(f, STYLE_RES)
+                    views = _style_views(f, STYLE_RES)
                 except Exception as e:
                     A.say(A.yellow(f"  skipping {f.name}: {e}")); continue
-                x = t.float().div(255)[None]
-                # style statistics on a centred square at working resolution
-                _, h, w = t.shape; s = min(h, w); x = x[:, :, (h - s) // 2:(h - s) // 2 + s, (w - s) // 2:(w - s) // 2 + s]
-                x = F.interpolate(x, size=(STYLE_RES, STYLE_RES), mode="bilinear", align_corners=False, antialias=True)
+                # Gram averaged over the whole piece AND native-scale crops: the crops carry the brush
+                # marks at their true size, which a squashed thumbnail throws away (that loss of scale
+                # is what made the texture read as blur).
+                acc: Dict[int, torch.Tensor] = {}
                 with torch.no_grad():
-                    fs, _ = features(x.to(device), net, device)
-                    grams.append({k: gram(v)[0].cpu() for k, v in fs.items()})
-                attrs.append(A.image_attributes(x)[0])
+                    for v in views:
+                        fs, _ = features(v.to(device), net, device)
+                        for k, val in fs.items():
+                            g = gram(val)[0].cpu()
+                            acc[k] = g if k not in acc else acc[k] + g
+                grams.append({k: v / len(views) for k, v in acc.items()})
+                attrs.append(A.image_attributes(views[0])[0])
                 self.files.append(f); self.tags.append(A.tags_for(f, self.root))
                 if not quiet and (i + 1) % 10 == 0: A.say(A.dim(f"  {i + 1}/{len(files)}"))
             self.attrs = torch.stack(attrs); self.grams = grams
@@ -216,6 +239,33 @@ def content_prompt(text: str, recipe: A.Recipe, book=None) -> str:
     return f"{t}, {medium_hint(book) if book is not None else 'painting, artwork, clear composition'}"
 
 # --------------------------------------------------------------------------- style transfer
+def _gaussian(x: torch.Tensor, sigma: float) -> torch.Tensor:
+    """Separable gaussian blur (MPS-safe: plain conv2d, no antialiased resize)."""
+    r = max(1, int(round(3 * sigma))); n = 2 * r + 1
+    k = torch.exp(-torch.arange(-r, r + 1, dtype=x.dtype, device=x.device) ** 2 / (2 * sigma * sigma)); k = k / k.sum()
+    C = x.shape[1]
+    x = F.conv2d(F.pad(x, (r, r, 0, 0), mode="reflect"), k.view(1, 1, 1, n).expand(C, 1, 1, n), groups=C)
+    return F.conv2d(F.pad(x, (0, 0, r, r), mode="reflect"), k.view(1, 1, n, 1).expand(C, 1, n, 1), groups=C)
+
+def _luma(x: torch.Tensor) -> torch.Tensor:
+    return (0.299 * x[:, 0] + 0.587 * x[:, 1] + 0.114 * x[:, 2]).unsqueeze(1)
+
+def structure_lock(styled: torch.Tensor, content: torch.Tensor, amount: float) -> torch.Tensor:
+    """Keep the drawing's large-scale layout, keep the style's colour and fine detail.
+
+    Composition lives in the low frequencies; brushwork and palette live above them. Style transfer
+    is free to rewrite both, and when it rewrites the low frequencies you get the artist's *subjects*
+    smeared over your scene. So: replace the styled image's low-frequency luminance with the drawing's
+    (rescaled to the styled image's tonal range, so the grade survives) and leave everything else —
+    all colour, all detail — exactly as the style transfer painted it."""
+    if amount <= 0: return styled
+    sigma = max(2.5, min(styled.shape[-2:]) / 40)
+    ls, lc = _luma(styled), _luma(content)
+    los, loc = _gaussian(ls, sigma), _gaussian(lc, sigma)
+    loc = (loc - loc.mean((2, 3), keepdim=True)) / loc.std((2, 3), keepdim=True).clamp_min(1e-5)
+    loc = loc * los.std((2, 3), keepdim=True) + los.mean((2, 3), keepdim=True)
+    return (styled + amount * (loc - los)).clamp(0, 1)
+
 def _box(x: torch.Tensor, r: int) -> torch.Tensor:
     k = 2 * r + 1
     return F.avg_pool2d(F.pad(x, (r, r, r, r), mode="reflect"), k, stride=1)
@@ -231,7 +281,7 @@ def guided_filter(p: torch.Tensor, guide: torch.Tensor, r: int = 4, eps: float =
 
 def _stylize(x0: torch.Tensor, G: Dict[int, torch.Tensor], Gn: Dict[int, torch.Tensor], c_target: Dict[int, torch.Tensor],
              c_scale: Dict[int, torch.Tensor], net, device, iters: int, sw: float, cw: float, tv_weight: float,
-             lr: float, progress=None, offset: int = 0, total: int = 0) -> Tuple[torch.Tensor, torch.Tensor]:
+             lr: float, progress=None, offset: int = 0, total: int = 0, eye=None, eye_w: float = 0.0) -> Tuple[torch.Tensor, torch.Tensor]:
     x = x0.clone().requires_grad_(True)
     opt = torch.optim.Adam([x], lr=lr)
     last = torch.zeros(x0.shape[0])
@@ -248,6 +298,9 @@ def _stylize(x0: torch.Tensor, G: Dict[int, torch.Tensor], Gn: Dict[int, torch.T
             lc = lc + CONTENT_LAYERS[k] * ((f - c_target[k]) ** 2).flatten(1).mean(1) / c_scale[k]
         tv = (x[:, :, 1:, :] - x[:, :, :-1, :]).abs().flatten(1).mean(1) + (x[:, :, :, 1:] - x[:, :, :, :-1]).abs().flatten(1).mean(1)
         loss = (sw * ls + cw * lc + tv_weight * tv).sum()
+        if eye is not None and eye_w > 0:            # the artist's own VAE: is this paint in their vocabulary?
+            import atelier_vae as V
+            loss = loss + eye_w * V.prior_loss(eye, x).sum()
         loss.backward(); opt.step()
         with torch.no_grad(): x.clamp_(0, 1)
         last = ls.detach().cpu()
@@ -256,7 +309,8 @@ def _stylize(x0: torch.Tensor, G: Dict[int, torch.Tensor], Gn: Dict[int, torch.T
 
 def transfer(contents: torch.Tensor, grams_target: Dict[int, torch.Tensor], device, iters: int = 250,
              style_weight: float = 30.0, content_weight: float = 1.0, tv_weight: float = 0.6, strength: float = 1.0,
-             jitter: float = 0.0, progress=None, clean: float = 0.35) -> Tuple[torch.Tensor, torch.Tensor]:
+             jitter: float = 0.0, progress=None, clean: float = 0.35, structure: float = 0.5,
+             eye=None, eye_weight: float = 12.0) -> Tuple[torch.Tensor, torch.Tensor]:
     """Gatys style transfer, batched and coarse-to-fine. contents: B×3×H×W in [0,1].
     Style loss per layer is *relative* (‖G−G*‖²/‖G*‖²) and weighted toward the shallow layers (palette,
     brush) so the artist's *subjects* don't get hallucinated into the scene; content is held at two depths
@@ -283,11 +337,13 @@ def transfer(contents: torch.Tensor, grams_target: Dict[int, torch.Tensor], devi
         else:
             x = F.interpolate(x, size=(h, w), mode="bilinear", align_corners=False)
         lr = 0.03 if si == 0 else 0.015
-        x, last = _stylize(x, G, Gn, c_t, c_scale, net, device, n, sw, cw, tv_weight, lr, progress, done, iters)
+        x, last = _stylize(x, G, Gn, c_t, c_scale, net, device, n, sw, cw, tv_weight, lr, progress, done, iters,
+                           eye=eye, eye_w=eye_weight)
         done += n
-    if clean > 0:
-        with torch.no_grad():
+    with torch.no_grad():
+        if clean > 0:
             x = (1 - clean) * x + clean * guided_filter(x, x_full, r=4, eps=2e-3).clamp(0, 1)
+        x = structure_lock(x, x_full, structure)
     return x.cpu(), last
 
 def grade(x: torch.Tensor, recipe: A.Recipe, book: StyleBook) -> torch.Tensor:
@@ -380,7 +436,8 @@ class NeuralEngine:
 
     def paint(self, recipe: A.Recipe, count: int = 4, temperature: Optional[float] = None, seed: Optional[int] = None,
               content: Optional[Path] = None, log=None, strength: Optional[float] = None,
-              sketch: Optional[Path] = None, freedom: float = 0.55, iters: Optional[int] = None):
+              sketch: Optional[Path] = None, freedom: float = 0.55, iters: Optional[int] = None,
+              structure: float = 0.5, eye: float = 1.0):
         log = log or (lambda s: A.say(A.dim(f"    {s}")))
         temp = self.temperature if temperature is None else temperature
         if content is None and recipe.anchor and Path(recipe.anchor).exists():
@@ -392,8 +449,19 @@ class NeuralEngine:
         # temperature = how hard the style is pushed (0.3 gentle … 1.3 fully repainted)
         st = strength if strength is not None else max(0.25, min(2.0, temp))
         t0 = time.time()
-        X, sl = transfer(X0, G, self.device, iters=iters or self.iters, strength=st, jitter=0.02 * temp if content is not None else 0.0,
-                         clean=float(max(0.2, min(0.6, 0.7 - 0.4 * st))),
+        eye_model, eye_w = None, 0.0
+        if eye > 0:
+            try:
+                import atelier_vae as V
+                eye_model, meta = V.find_trained(self.book.files, self.device)
+                if eye_model is not None:
+                    eye_w = 12.0 * float(eye)
+                    log(f"the apprentice's own eye is trained on this portfolio ({meta.get('patches', '?')} patches) — using it")
+            except Exception as e:
+                log(f"(trained eye unavailable: {e})")
+        X, sl = transfer(X0, G, self.device, iters=iters or self.iters, strength=st, jitter=0.0,
+                         clean=float(max(0.2, min(0.6, 0.7 - 0.4 * st))), structure=float(structure),
+                         eye=eye_model, eye_weight=eye_w,
                          progress=lambda it, n, l: log(f"repainting in the style… {it}/{n}  style loss {l:.3g}"))
         log(f"style transfer done in {time.time() - t0:.0f}s")
         X = grade(X, recipe, self.book)

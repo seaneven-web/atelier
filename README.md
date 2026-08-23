@@ -12,7 +12,7 @@ Website: https://seaneven-web.github.io/atelier/ · Downloads: https://github.co
 python atelier_app.py        # or double-click the Mac / Windows / Linux build
 ```
 
-Three benches: **the artist's work** → **ask for a piece** (prompt, optional sketch, sliders: style strength · sketch freedom · quality · detail · pieces · seed) → **the pieces** (open, save, variations). A **History** rail lists every past run (newest first, grouped by day); click one to see its pieces and settings again, *run again* with fresh noise, *load its settings* into the controls, or delete it. Each run is a small JSON record next to its images in the gallery folder, so the history survives restarts and is yours to keep. One-time setup downloads the two pretrained models (~3 GB) into the app's folder; after that it runs offline.
+Three benches: **the artist's work** (add pieces; optionally *train the apprentice's eye* on them) → **ask for a piece** (prompt, optional sketch, sliders: style strength · composition lock · sketch freedom · apprentice's eye · quality · detail · pieces · seed) → **the pieces** (open, save, variations). A **History** rail lists every past run (newest first, grouped by day); click one to see its pieces and settings again, *run again* with fresh noise, *load its settings* into the controls, or delete it. Each run is a small JSON record next to its images in the gallery folder, so the history survives restarts and is yours to keep. One-time setup downloads the two pretrained models (~3 GB) into the app's folder; after that it runs offline.
 
 **Private by construction.** Everything — the artist's pieces, sketches, results, the per-artist style index and the downloaded models — lives in one folder:
 
@@ -29,16 +29,23 @@ No account, no upload, no server. The only network access is the one-time model 
 | stage | model | what it does |
 |---|---|---|
 | 1 · content | **SD-Turbo** (pretrained diffusion UNet, CPU-friendly) | draws what the words describe, in the artist's medium (the style book tells it coloured-pencil-on-paper vs. oil); or reinterprets your sketch (img2img, "sketch freedom") |
-| 2 · style | **VGG19 neural style transfer** (Gatys — the "deep style" method) | repaints it with the portfolio's palette and brushwork; the pieces your words select (tags, mood words) define the style |
-| 3 · grade + rank | — | mood words as a gentle colour grade; pieces ranked by how completely they took the style |
+| 2 · style | **VGG19 neural style transfer** (Gatys), depth-weighted | repaints it with the portfolio's palette and brushwork. Style statistics come from **native-scale crops** of each piece — marks matched at the size they were made, not squashed into a thumbnail. Shallow layers (palette, texture) weighted heavily, deep layers (objects) almost not at all, so the artist's *subjects* aren't smuggled into your scene |
+| 3 · composition lock | — | after styling, the drawing's low-frequency layout is restored (tonal range matched), keeping your framing while the style keeps colour and detail |
+| 4 · the apprentice's eye *(optional)* | **artist VAE**, trained locally | a variational autoencoder trained on patches of the artist's own work; during styling it asks "is this paint in this artist's vocabulary?" |
+| 5 · grade + rank | — | mood words as a gentle colour grade; pieces ranked by how completely they took the style |
 
-No training is required. A portfolio is indexed once into a cached *style book*. The experimental trained actor/critic (a VAE-GAN that learns palette/texture and paints abstract pieces; `train`, `--engine vae`) is still in the repo.
+No training is required to paint: a portfolio is indexed once into a cached *style book*. The eye is opt-in (`train-eye`, a few minutes). The older actor/critic VAE-GAN (`train`, `--engine vae`) is still in the repo as an experiment.
+
+### The apprentice's eye (`atelier_vae.py`)
+
+Adapted from a CelebA face-generation VAE (Czajka-Teaching/semester-project-benjaminlyons — blyons1 · seven), which established the parts that matter here: the plain VAE beat the GAN built alongside it; reconstruction must dominate (BCE **summed** + β·KL — mean reduction lets the KL swamp it and everything blurs); BatchNorm + Dropout(0.25) + LeakyReLU(0.2) per block; decode **μ** at inference, never a sample; consistently framed inputs (their Haar-cascade 100×100 face crops → fixed 64px patches at native brush scale here); keep the best-by-validation checkpoint, not the last. On 5 pieces in ~3 minutes it learns colour and the feel of the marks, not composition — so it is used as a prior during styling, never as the generator.
 
 ## Command line
 
 ```
 python atelier.py paint "a hippo eating cheese" --portfolio ~/DadsArt [--count 4] [--temp 0.8] [--json]
 python atelier.py paint "a fox reading" --sketch sketch.jpg --freedom 0.6      # sketch as starting point
+python atelier.py train-eye ~/DadsArt --minutes 4                              # train the apprentice's eye
 python atelier.py paint "quiet, at dusk" --content photo.jpg                   # repaint an image as-is
 python atelier.py prep ~/Photos --paper      # photographed drawings → clean JPEGs cropped to the sheet
 python atelier.py studio                     # text studio (word engine)
@@ -46,7 +53,7 @@ python atelier_claude.py                     # Claude Opus directs the painter (
 python atelier.py pretrain / train ~/DadsArt # optional: the small trained actor/critic
 ```
 
-Knobs: `--temp` (style strength 0.4 gentle … 1.2 fully repainted), `--res 256|384|512`, `--iters 250`, `--size` (output long side). `ATELIER_HOME` relocates model/gallery; `ATELIER_DEVICE=cpu|mps|cuda` forces the device.
+Knobs: `--temp` (style strength 0.4 gentle … 1.2 fully repainted), `--structure` (composition lock, default 0.5), `--eye` (weight of the trained eye), `--res 256|384|512`, `--iters 250`, `--size` (output long side). `ATELIER_HOME` relocates model/gallery; `ATELIER_DEVICE=cpu|mps|cuda` forces the device.
 
 ## Install from source
 

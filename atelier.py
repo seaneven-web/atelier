@@ -1199,12 +1199,17 @@ def main(argv=None):
     p.add_argument("--like", "--content", dest="like", default=None, help="repaint this image (photo/sketch) as-is instead of drawing the words")
     p.add_argument("--sketch", default=None, help="a sketch/photo as the STARTING POINT: the words reinterpret it (SD-Turbo img2img), then the style is applied")
     p.add_argument("--freedom", type=float, default=0.55, help="with --sketch: 0.2 stays close to the sketch … 0.9 loosely inspired")
+    p.add_argument("--structure", type=float, default=0.5, help="composition lock: 0 = style may rewrite the layout … 1 = the drawing's layout is kept")
+    p.add_argument("--eye", type=float, default=1.0, help="weight of the artist's trained VAE prior (0 = off; needs `train-eye`)")
     p.add_argument("--no-open", action="store_true")
     p.add_argument("--json", action="store_true", help="print a JSON result instead of prose"); engine_flags(p)
 
     pp = sub.add_parser("prep", help="photos of drawings → clean JPEGs (crop to the sheet of paper with --paper)")
     pp.add_argument("folder"); pp.add_argument("--out", default=None); pp.add_argument("--paper", action="store_true", help="crop to the white sheet")
     pp.add_argument("--max-side", type=int, default=1600)
+
+    te = sub.add_parser("train-eye", help="train the artist's own VAE on the portfolio (the apprentice's eye)")
+    te.add_argument("portfolio"); te.add_argument("--minutes", type=float, default=4.0)
 
     i = sub.add_parser("index", help="rebuild the word→style index from the portfolio")
     i.add_argument("portfolio")
@@ -1216,6 +1221,13 @@ def main(argv=None):
         pretrain(args)
     elif args.cmd == "prep":
         prep(args)
+    elif args.cmd == "train-eye":
+        import atelier_vae as V
+        folder = Path(args.portfolio).expanduser().resolve()
+        files = [f for f in find_images(folder)]
+        model, meta = V.load_or_train(files, pick_device(), minutes=args.minutes, force=True)
+        say(green(f"  the apprentice's eye is trained: {meta['patches']} patches, best at step {meta['best_step']} "
+                  f"({meta['seconds']:.0f}s) → {V.model_path(files).name}"))
     elif args.cmd == "studio":
         studio(args)
     elif args.cmd == "paint":
@@ -1225,8 +1237,10 @@ def main(argv=None):
             sys.exit(f"  {e}")
         recipe = painter.optimizer.optimize(args.prompt)
         if args.like: recipe.anchor = str(Path(args.like).expanduser())
-        if getattr(args, "sketch", None) and type(painter).__name__ == "NeuralEngine":
-            picks, info = painter.paint(recipe, args.count, args.temp, args.seed, sketch=Path(args.sketch).expanduser(), freedom=args.freedom)
+        if type(painter).__name__ == "NeuralEngine":
+            picks, info = painter.paint(recipe, args.count, args.temp, args.seed,
+                                        sketch=Path(args.sketch).expanduser() if getattr(args, "sketch", None) else None,
+                                        freedom=args.freedom, structure=args.structure, eye=args.eye)
         else:
             picks, info = painter.paint(recipe, args.count, args.temp, args.seed)
         paths, sheet = save_results(picks, info, recipe, args.size, not args.no_open and not args.json)
