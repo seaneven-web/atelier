@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 APP_NAME = "Atelier"
 
 # --------------------------------------------------------------------------- the sandbox folder (set BEFORE importing torch / atelier)
@@ -264,8 +264,43 @@ def job_paint(progress, p: dict) -> dict:
     recipe_view = {"text": recipe.text, "attributes": recipe.attrs, "tags": recipe.tags, "ignored": recipe.ignored,
                    "content_prompt": N().content_prompt(recipe.text, recipe, eng.book) if not content else None,
                    "style_pieces": [eng.book.files[i].name for i in eng.book.select(recipe)]}
-    return {"files": [f"/gallery/{x.name}" for x in paths], "sheet": f"/gallery/{sheet.name}", "names": [x.name for x in paths],
-            "info": info, "recipe": recipe_view}
+    stamp = sheet.name[: sheet.name.rfind("_sheet")]
+    result = {"stamp": stamp, "time": time.time(), "title": (p.get("prompt") or "").strip() or ("sketch, repainted" if content else "from a sketch"),
+              "portfolio": name, "settings": {k: v for k, v in p.items() if k != "files"},
+              "files": [f"/gallery/{x.name}" for x in paths], "sheet": f"/gallery/{sheet.name}", "names": [x.name for x in paths],
+              "info": info, "recipe": recipe_view,
+              "sketch_url": f"/sketches/{Path(p['sketch']).name}" if p.get("sketch") else None}
+    (DATA_DIR / "gallery" / f"{stamp}_run.json").write_text(json.dumps(result), encoding="utf-8")
+    return result
+
+def history() -> List[dict]:
+    """Every past run, newest first: the saved records; older sheets without a record are listed bare."""
+    out, seen = [], set()
+    for f in sorted((DATA_DIR / "gallery").glob("*_run.json"), key=lambda f: f.stat().st_mtime, reverse=True):
+        try:
+            r = json.loads(f.read_text(encoding="utf-8"))
+            out.append({"stamp": r["stamp"], "time": r.get("time", f.stat().st_mtime), "title": r.get("title", ""), "portfolio": r.get("portfolio"),
+                        "thumb": (r.get("files") or [None])[0], "count": len(r.get("files") or []), "has_sketch": bool(r.get("sketch_url"))})
+            seen.add(r["stamp"])
+        except Exception:
+            continue
+    for f in sorted((DATA_DIR / "gallery").glob("*_sheet.png"), key=lambda f: f.stat().st_mtime, reverse=True):
+        stamp = f.name[: f.name.rfind("_sheet")]
+        if stamp in seen: continue
+        files = sorted(x for x in (DATA_DIR / "gallery").glob(stamp + "_*.png") if not x.name.endswith("_sheet.png"))
+        out.append({"stamp": stamp, "time": f.stat().st_mtime, "title": stamp.split("_", 1)[-1].replace("-", " "), "portfolio": None,
+                    "thumb": f"/gallery/{files[0].name}" if files else f"/gallery/{f.name}", "count": len(files), "has_sketch": False, "bare": True})
+    out.sort(key=lambda r: -r["time"])
+    return out
+
+def run_record(stamp: str) -> Optional[dict]:
+    f = DATA_DIR / "gallery" / f"{Path(stamp).name}_run.json"
+    if f.exists():
+        return json.loads(f.read_text(encoding="utf-8"))
+    files = sorted(x for x in (DATA_DIR / "gallery").glob(Path(stamp).name + "_*.png") if not x.name.endswith("_sheet.png"))
+    if not files: return None
+    return {"stamp": stamp, "title": stamp.split("_", 1)[-1].replace("-", " "), "files": [f"/gallery/{x.name}" for x in files],
+            "names": [x.name for x in files], "info": [{"critic": 0, "achieved": {}} for _ in files], "recipe": None, "settings": None, "bare": True}
 
 # --------------------------------------------------------------------------- HTTP
 class Handler(BaseHTTPRequestHandler):
@@ -314,6 +349,9 @@ class Handler(BaseHTTPRequestHandler):
                 files = sorted(f for f in (DATA_DIR / "gallery").glob(stamp + "_*.png") if not f.name.endswith("_sheet.png"))
                 return self._json(200, {"files": [f"/gallery/{f.name}" for f in files], "names": [f.name for f in files], "title": stamp.split("_", 1)[-1].replace("-", " ")})
             if p == "/api/selfcheck": return self._json(200, selfcheck())
+            if p == "/api/history": return self._json(200, history())
+            if p.startswith("/api/run/"):
+                r = run_record(p.split("/", 3)[3]); return self._json(200 if r else 404, r or {"error": "no such run"})
             if p == "/api/gallery":
                 files = sorted((DATA_DIR / "gallery").glob("*_sheet.png"), key=lambda f: f.stat().st_mtime, reverse=True)[:40]
                 return self._json(200, [{"sheet": f"/gallery/{f.name}", "name": f.name} for f in files])
@@ -344,6 +382,12 @@ class Handler(BaseHTTPRequestHandler):
                 target = DATA_DIR / "gallery" / Path(body.get("name", "")).name
                 if body.get("folder"): target = DATA_DIR / body["folder"]
                 A().open_file(target); return self._json(200, {"ok": True})
+            if p == "/api/run/delete":
+                stamp = Path(body.get("stamp", "")).name
+                n = 0
+                for f in (DATA_DIR / "gallery").glob(stamp + "_*"):
+                    f.unlink(); n += 1
+                return self._json(200, {"deleted": n})
             if p == "/api/quit":
                 threading.Thread(target=lambda: (time.sleep(0.3), os._exit(0)), daemon=True).start()
                 return self._json(200, {"ok": True})

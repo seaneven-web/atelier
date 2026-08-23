@@ -12,7 +12,7 @@ Website: https://seaneven-web.github.io/atelier/ · Downloads: https://github.co
 python atelier_app.py        # or double-click the Mac / Windows / Linux build
 ```
 
-Three benches: **the artist's work** → **ask for a piece** (prompt, optional sketch, sliders: style strength · sketch freedom · quality · detail · pieces · seed) → **the pieces** (open, save, variations, earlier sheets). One-time setup downloads the two pretrained models (~3 GB) into the app's folder; after that it runs offline.
+Three benches: **the artist's work** → **ask for a piece** (prompt, optional sketch, sliders: style strength · sketch freedom · quality · detail · pieces · seed) → **the pieces** (open, save, variations). A **History** rail lists every past run (newest first, grouped by day); click one to see its pieces and settings again, *run again* with fresh noise, *load its settings* into the controls, or delete it. Each run is a small JSON record next to its images in the gallery folder, so the history survives restarts and is yours to keep. One-time setup downloads the two pretrained models (~3 GB) into the app's folder; after that it runs offline.
 
 **Private by construction.** Everything — the artist's pieces, sketches, results, the per-artist style index and the downloaded models — lives in one folder:
 

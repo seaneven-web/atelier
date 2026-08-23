@@ -11,7 +11,19 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px 80px; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start; }
+.rail { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.rail-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; }
+.hist { display: flex; flex-direction: column; gap: 6px; }
+.hist .day { font: 500 11px/1 ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 10px 0 4px; }
+.hist .run { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; padding: 6px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; text-align: left; background: transparent; color: var(--ink); font: inherit; }
+.hist .run:hover { background: var(--surface-2); } .hist .run.active { border-color: var(--accent); background: var(--accent-soft); }
+.hist .run img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+.hist .run b { display: block; font-weight: 500; font-size: 13px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.hist .run small { color: var(--muted); font-size: 11px; }
+.viewing { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; color: var(--ink); }
+.viewing button { font-size: 12px; padding: 6px 10px; }
+@media (max-width: 960px) { .wrap { grid-template-columns: 1fr; } .rail { position: static; max-height: 260px; } }
 header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
 h1 { font: 500 38px/1 Georgia, "Iowan Old Style", "Palatino Linotype", serif; letter-spacing: -.01em; margin: 0; }
 .sub { color: var(--muted); margin: 8px 0 0; }
@@ -71,9 +83,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .piece .cap b { color: var(--ink); font-weight: 500; }
 .piece .acts { display: flex; gap: 6px; margin-top: 6px; }
 .piece .acts button { font-size: 12px; padding: 5px 8px; }
-.history { margin-top: 14px; } .history summary { color: var(--muted); font-size: 13px; cursor: pointer; }
-.hist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
-.hist img { width: 100%; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
 footer { color: var(--muted); font-size: 13px; margin-top: 26px; line-height: 1.6; max-width: 72ch; }
 .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: flex; align-items: center; justify-content: center; z-index: 9; cursor: zoom-out; }
 .lightbox img { max-width: 94vw; max-height: 94vh; border-radius: 6px; }

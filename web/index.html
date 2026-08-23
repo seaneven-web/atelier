@@ -8,6 +8,12 @@
 </head>
 <body>
 <div class="wrap">
+  <aside class="rail" id="rail">
+    <div class="rail-head"><b>History</b><span class="muted small" id="hist-count"></span></div>
+    <div class="hist" id="hist"></div>
+    <p class="muted small" style="margin:10px 0 0">Every run is kept in the gallery folder with its settings. Click one to see it again or run it again.</p>
+  </aside>
+  <main class="main">
   <header>
     <div>
       <h1>Atelier</h1>
@@ -73,7 +79,7 @@
       </div>
       <div class="sliders">
         <label><span>style strength <b id="v-strength">0.8</b></span><input type="range" id="strength" min="0.3" max="1.4" step="0.05" value="0.8"><small>gentle ← → fully repainted</small></label>
-        <label id="l-freedom"><span>sketch freedom <b id="v-freedom">0.55</b></span><input type="range" id="freedom" min="0.2" max="0.9" step="0.05" value="0.55"><small>faithful ← → loosely inspired</small></label>
+        <label id="l-freedom"><span>sketch freedom <b id="v-freedom">0.55</b></span><input type="range" id="freedom" min="0.1" max="0.95" step="0.05" value="0.55"><small>faithful ← → loosely inspired · applies when a sketch is the starting point</small></label>
         <label><span>quality <b id="v-iters">250</b></span><input type="range" id="iters" min="60" max="500" step="10" value="250"><small>iterations · more = finer, slower</small></label>
         <label><span>detail <b id="v-res">384</b>px</span><input type="range" id="res" min="256" max="512" step="64" value="384"><small>working resolution</small></label>
         <label><span>pieces <b id="v-count">4</b></span><input type="range" id="count" min="1" max="8" step="1" value="4"><small>each takes about a minute</small></label>
@@ -92,14 +98,15 @@
   <!-- results -->
   <section class="bench off" id="b3">
     <div class="bench-head"><span class="n">3</span><h2>Pieces</h2><span class="hint" id="r-hint"></span></div>
+    <div class="viewing" id="viewing" hidden><span id="viewing-text"></span><button id="run-again">run again</button><button class="quiet" id="load-settings">load its settings</button><button class="quiet" id="delete-run">delete</button></div>
     <div class="out" id="out"></div>
     <div class="row" style="margin-top:12px"><button class="quiet" id="open-gallery">open the gallery folder</button><button class="quiet" id="more" hidden>more like this</button></div>
-    <details class="history"><summary>earlier sheets</summary><div class="hist" id="hist"></div></details>
   </section>
 
   <footer>
     <b>Private by construction.</b> Your pieces, sketches and results live in one folder on this computer (<span id="ddir"></span>) and are never uploaded anywhere. The models (VGG19 + SD-Turbo) are downloaded once and then run locally — switch the network off if you like; it keeps working. Nothing here trains a shared AI on your work: the style index is a file in that folder, for this artist only.
   </footer>
+  </main>
 </div>
 <script src="/web/app.js"></script>
 </body>

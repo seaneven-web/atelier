@@ -92,7 +92,6 @@ async function setSketch(file) {
   try {
     const r = await api("/api/sketch", f);
     S.sketch = r.sketch; $("spreview").src = r.url + "?" + Date.now(); $("spreview").hidden = false; $("sdrop-text").hidden = true; $("srow").hidden = false;
-    $("l-freedom").style.opacity = 1;
   } catch (e) { alert(e.message); }
 }
 $("sfile").addEventListener("change", e => setSketch(e.target.files[0]));
@@ -100,7 +99,7 @@ sdrop.addEventListener("dragover", e => { e.preventDefault(); sdrop.classList.ad
 sdrop.addEventListener("dragleave", () => sdrop.classList.remove("over"));
 sdrop.addEventListener("drop", e => { e.preventDefault(); sdrop.classList.remove("over"); setSketch(e.dataTransfer.files[0]); });
 $("sclear").addEventListener("click", e => { e.preventDefault(); S.sketch = null; $("spreview").hidden = true; $("sdrop-text").hidden = false; $("srow").hidden = true; $("sfile").value = ""; });
-$("smode").addEventListener("change", () => { $("l-freedom").style.opacity = $("smode").value === "sketch" ? 1 : .4; });
+$("smode").addEventListener("change", () => {});
 
 // ---------------------------------------------------------------- sliders
 for (const id of ["strength", "freedom", "iters", "res", "count"]) {
@@ -108,27 +107,32 @@ for (const id of ["strength", "freedom", "iters", "res", "count"]) {
   const show = () => out.textContent = id === "strength" || id === "freedom" ? (+el.value).toFixed(2) : el.value;
   el.addEventListener("input", show); show();
 }
-$("l-freedom").style.opacity = .4;
 
 // ---------------------------------------------------------------- paint
-async function paint(extra) {
-  if (!S.portfolio) { alert("add the artist's pieces first"); return; }
-  const prompt = $("prompt").value.trim();
-  if (!prompt && !S.sketch) { $("prompt").focus(); return; }
-  const body = Object.assign({ portfolio: S.portfolio, prompt, count: +$("count").value, strength: +$("strength").value,
-    freedom: +$("freedom").value, iters: +$("iters").value, res: +$("res").value, seed: $("seed").value.trim() || null,
-    sketch: S.sketch, mode: $("smode").value, size: 768 }, extra || {});
+async function paint(extra, storedBody) {
+  let body;
+  if (storedBody) body = Object.assign({}, storedBody, extra || {});
+  else {
+    if (!S.portfolio) { alert("add the artist's pieces first"); return; }
+    const prompt = $("prompt").value.trim();
+    if (!prompt && !S.sketch) { $("prompt").focus(); return; }
+    body = Object.assign({ portfolio: S.portfolio, prompt, count: +$("count").value, strength: +$("strength").value,
+      freedom: +$("freedom").value, iters: +$("iters").value, res: +$("res").value, seed: $("seed").value.trim() || null,
+      sketch: S.sketch, mode: $("smode").value, size: 768 }, extra || {});
+  }
+  $("viewing").hidden = true; S.viewing = null;
   $("paint").disabled = true; $("p-prog").hidden = false; $("p-prog").classList.remove("done"); $("p-log").textContent = "";
   $("b3").classList.remove("off"); $("r-hint").textContent = "painting…";
   try {
     const { job } = await api("/api/paint", body);
     const res = await poll(job, logger($("p-log")), $("p-prog"));
-    S.last = body; showResult(res, body);
+    S.last = body; showResult(res, body); S.viewing = res.stamp;
   } catch (e) { logger($("p-log"))("error: " + e.message); $("r-hint").textContent = ""; }
   $("paint").disabled = false; loadHistory();
 }
 function showResult(res, body) {
   const r = res.recipe;
+  if (!r) { $("recipe").hidden = true; } else {
   $("recipe").hidden = false;
   const chips = [];
   if (r.content_prompt) chips.push(`<span class="chip">draws: “${r.content_prompt}”</span>`);
@@ -137,12 +141,13 @@ function showResult(res, body) {
   $("rchips").innerHTML = chips.join("") || `<span class="chip">free sample from the style</span>`;
   $("rmeta").textContent = `style from ${r.style_pieces.length} piece(s) · strength ${body.strength} · ${body.count} piece(s)`;
   $("rwhy").textContent = `Style pieces: ${r.style_pieces.slice(0, 6).join(", ")}${r.style_pieces.length > 6 ? "…" : ""}. ${body.sketch ? (body.mode === "sketch" ? `Started from your sketch (freedom ${body.freedom}).` : "Repainted your sketch as-is.") : "Mood words pick the style pieces and grade the colour; the rest of the words are drawn."}`;
+  }
   $("out").innerHTML = res.files.map((f, i) => `<div class="piece ${i === 0 ? "best" : ""}">
       <img src="${f}" alt="piece ${i + 1}" data-full="${f}">
-      <div class="cap"><span><b>#${i + 1}</b>${i === 0 ? " · pick" : ""}</span><span title="how completely it took the style">${Math.round(res.info[i].critic * 100)}%</span></div>
+      <div class="cap"><span><b>#${i + 1}</b>${i === 0 && r ? " · pick" : ""}</span><span title="how completely it took the style">${res.info && res.info[i] && res.info[i].critic ? Math.round(res.info[i].critic * 100) + "%" : ""}</span></div>
       <div class="acts"><button data-open="${res.names[i]}">open</button><a class="quiet" href="${f}?download=1" download><button>save…</button></a><button data-vary="${res.names[i]}">variations</button></div>
     </div>`).join("");
-  $("r-hint").textContent = `saved in the gallery folder · sheet: ${res.sheet.split("/").pop()}`;
+  $("r-hint").textContent = res.sheet ? `saved in the gallery folder · sheet: ${res.sheet.split("/").pop()}` : "";
   $("more").hidden = false;
 }
 $("out").addEventListener("click", async e => {
@@ -160,9 +165,46 @@ $("paint").addEventListener("click", () => paint());
 $("prompt").addEventListener("keydown", e => { if (e.key === "Enter") paint(); });
 function lightbox(src) { const d = document.createElement("div"); d.className = "lightbox"; d.innerHTML = `<img src="${src}">`; d.addEventListener("click", () => d.remove()); document.body.append(d); }
 async function loadHistory() {
-  try { const h = await api("/api/gallery"); $("hist").innerHTML = h.map(x => `<img src="${x.sheet}" title="${x.name}" data-full="${x.sheet}">`).join(""); } catch (e) {}
+  try {
+    const h = await api("/api/history"); S.history = h;
+    $("hist-count").textContent = h.length ? `${h.length} run${h.length === 1 ? "" : "s"}` : "";
+    const fmtDay = t => { const d = new Date(t * 1000), today = new Date(); const y = new Date(); y.setDate(today.getDate() - 1);
+      return d.toDateString() === today.toDateString() ? "today" : d.toDateString() === y.toDateString() ? "yesterday" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" }); };
+    let day = "", html = "";
+    for (const r of h) {
+      const dd = fmtDay(r.time); if (dd !== day) { day = dd; html += `<div class="day">${dd}</div>`; }
+      const tm = new Date(r.time * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      html += `<button class="run ${S.viewing === r.stamp ? "active" : ""}" data-stamp="${r.stamp}"><img src="${r.thumb || ""}" alt=""><span><b>${r.title || "untitled"}</b><small>${tm} · ${r.count} piece${r.count === 1 ? "" : "s"}${r.has_sketch ? " · from a sketch" : ""}${r.portfolio ? " · " + r.portfolio : ""}</small></span></button>`;
+    }
+    $("hist").innerHTML = html || `<p class="muted small">Your runs will appear here.</p>`;
+  } catch (e) {}
 }
-$("hist").addEventListener("click", e => { const i = e.target.closest("img"); if (i) lightbox(i.dataset.full); });
+async function openRun(stamp) {
+  try {
+    const r = await api("/api/run/" + encodeURIComponent(stamp));
+    S.viewing = stamp; S.viewingRun = r;
+    $("b3").classList.remove("off"); showResult(r, r.settings || {});
+    const when = r.time ? new Date(r.time * 1000).toLocaleString() : "";
+    $("viewing").hidden = false; $("viewing-text").textContent = `viewing “${r.title || stamp}”${when ? " · " + when : ""}`;
+    $("run-again").hidden = !r.settings; $("load-settings").hidden = !r.settings;
+    $("r-hint").textContent = r.bare ? "an older sheet (no saved settings)" : `saved run · ${r.names.length} piece(s)`;
+    document.querySelectorAll(".hist .run").forEach(b => b.classList.toggle("active", b.dataset.stamp === stamp));
+    $("b3").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) { alert(e.message); }
+}
+function applySettings(st) {
+  if (!st) return;
+  if (st.portfolio) { S.portfolio = st.portfolio; $("pf").value = st.portfolio; loadPortfolio(st.portfolio); }
+  $("prompt").value = st.prompt || "";
+  for (const k of ["strength", "freedom", "iters", "res", "count"]) if (st[k] != null) { $(k).value = st[k]; $(k).dispatchEvent(new Event("input")); }
+  $("seed").value = st.seed || "";
+  if (st.sketch) { S.sketch = st.sketch; $("spreview").src = "/sketches/" + st.sketch; $("spreview").hidden = false; $("sdrop-text").hidden = true; $("srow").hidden = false; $("smode").value = st.mode || "sketch"; }
+  else { S.sketch = null; $("spreview").hidden = true; $("sdrop-text").hidden = false; $("srow").hidden = true; }
+}
+$("hist").addEventListener("click", e => { const b = e.target.closest(".run"); if (b) openRun(b.dataset.stamp); });
+$("run-again").addEventListener("click", () => { const r = S.viewingRun; if (!r || !r.settings) return; applySettings(r.settings); paint({ seed: null }, Object.assign({}, r.settings, { seed: null })); });
+$("load-settings").addEventListener("click", () => { if (S.viewingRun) { applySettings(S.viewingRun.settings); $("b2").scrollIntoView({ behavior: "smooth" }); } });
+$("delete-run").addEventListener("click", async () => { if (!S.viewing) return; if (!confirm("Delete this run and its pieces from the gallery folder?")) return; await api("/api/run/delete", { stamp: S.viewing }); $("viewing").hidden = true; $("out").innerHTML = ""; $("r-hint").textContent = ""; S.viewing = null; loadHistory(); });
 
 async function showLast() {
   try {
@@ -173,5 +215,5 @@ async function showLast() {
       <div class="acts"><button data-open="${l.names[i]}">open</button><a class="quiet" href="${f}?download=1" download><button>save…</button></a><button data-vary="${l.names[i]}">variations</button></div></div>`).join("");
   } catch (e) {}
 }
-refresh().then(loadHistory).then(showLast).catch(e => { $("models-text").textContent = "cannot reach the local server: " + e.message; });
+refresh().then(loadHistory).then(() => { if (S.history && S.history.length) openRun(S.history[0].stamp); }).catch(e => { $("models-text").textContent = "cannot reach the local server: " + e.message; });
 })();
