@@ -18,7 +18,7 @@ import os
 import re
 import sys
 
-from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules, copy_metadata
 
 REPO_ROOT = os.path.dirname(SPECPATH)
 if REPO_ROOT not in sys.path:
@@ -47,6 +47,22 @@ for pkg in ("anthropic", "webview"):
     except Exception as e:
         print("atelier.spec: optional %s not bundled (%s)" % (pkg, e))
 hiddenimports += ["atelier", "atelier_neural", "atelier_claude", "pillow_heif", "PIL.Image", "PIL.ImageOps", "PIL.ImageDraw"]
+
+# diffusers / transformers verify their dependencies through importlib.metadata at import time
+# ("No package metadata was found for requests") — ship the dist-info of their whole dependency trees.
+for pkg in ("diffusers", "transformers", "accelerate", "huggingface_hub", "torch", "torchvision", "safetensors",
+            "requests", "urllib3", "certifi", "charset_normalizer", "idna", "filelock", "numpy", "regex", "Pillow",
+            "tqdm", "packaging", "PyYAML", "tokenizers", "importlib_metadata", "typing_extensions", "fsspec",
+            "pillow_heif", "psutil", "sympy", "networkx", "jinja2", "MarkupSafe", "mpmath", "setuptools"):
+    try:
+        datas += copy_metadata(pkg, recursive=True)
+    except Exception as e:
+        try:
+            datas += copy_metadata(pkg)
+        except Exception as e2:
+            print("atelier.spec: no metadata for %s (%s)" % (pkg, e2))
+# de-duplicate
+datas = list({(src, dst): (src, dst) for src, dst in datas}.values())
 
 # the UI
 web_dir = os.path.join(REPO_ROOT, "web")
