@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 APP_NAME = "Atelier"
 
 # --------------------------------------------------------------------------- the sandbox folder (set BEFORE importing torch / atelier)
@@ -202,7 +202,7 @@ def job_add_portfolio(progress, name: str, files: List[dict], paper: bool) -> di
             progress(f"{fname}: skipped ({e})")
     progress(f"{added} piece(s) in {d.name} — reading the style…")
     ENGINES.pop(name, None)
-    eng = engine_for(name, 384, 250)
+    eng = engine_for(name, 512, 250)
     progress(f"style book ready: {len(eng.book.files)} pieces, {len(eng.book.tag_counts)} words from file names")
     return portfolio_info(name)
 
@@ -244,7 +244,7 @@ def job_download_models(progress) -> dict:
 
 def job_paint(progress, p: dict) -> dict:
     name = p["portfolio"]
-    res, iters, count = int(p.get("res", 384)), int(p.get("iters", 250)), int(p.get("count", 4))
+    res, iters, count = int(p.get("res", 512)), int(p.get("iters", 250)), int(p.get("count", 4))
     eng = engine_for(name, res, iters)
     recipe = eng.optimizer.optimize(p.get("prompt") or "")
     if not (p.get("prompt") or "").strip() and not p.get("sketch"):

@@ -34,7 +34,7 @@ from PIL import Image
 
 import atelier as A
 
-STYLE_RES = 384          # working resolution for style transfer
+STYLE_RES = 512          # working resolution for style transfer
 CONTENT_RES = 512        # SD-Turbo native
 
 # --------------------------------------------------------------------------- VGG19 features
@@ -52,19 +52,22 @@ def vgg():
     return _VGG
 
 STYLE_LAYERS = {1: "relu1_1", 6: "relu2_1", 11: "relu3_1", 20: "relu4_1", 29: "relu5_1"}   # indices in vgg19.features
-CONTENT_LAYER = 22                                                                       # relu4_2
+# shallow layers carry palette and brush texture; deep layers carry *objects* — matching those is what
+# hallucinates the artist's subjects into a new scene. So: weight the shallow ones, barely touch the deep.
+STYLE_LAYER_W = {1: 1.0, 6: 0.8, 11: 0.5, 20: 0.15, 29: 0.05}
+CONTENT_LAYERS = {8: 0.6, 22: 1.0}                                                       # relu2_2 (edges) + relu4_2 (layout)
 _MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 _STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
-def features(x: torch.Tensor, net, device) -> Tuple[Dict[int, torch.Tensor], torch.Tensor]:
-    """x in [0,1], B×3×H×W → {layer: fmap} for style layers, and the content fmap."""
+def features(x: torch.Tensor, net, device) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor]]:
+    """x in [0,1], B×3×H×W → ({style layer: fmap}, {content layer: fmap})."""
     h = (x - _MEAN.to(device)) / _STD.to(device)
-    out, content = {}, None
-    last = max(max(STYLE_LAYERS), CONTENT_LAYER)
+    out, content = {}, {}
+    last = max(max(STYLE_LAYERS), max(CONTENT_LAYERS))
     for i, layer in enumerate(net):
         h = layer(h)
         if i in STYLE_LAYERS: out[i] = h
-        if i == CONTENT_LAYER: content = h
+        if i in CONTENT_LAYERS: content[i] = h
         if i >= last: break
     return out, content
 
@@ -158,7 +161,7 @@ def sd_available() -> bool:
         except Exception: pass
         return False
 
-def content_from_text(prompt: str, seed: int, steps: int = 2, size: int = CONTENT_RES) -> Image.Image:
+def content_from_text(prompt: str, seed: int, steps: int = 4, size: int = CONTENT_RES) -> Image.Image:
     """SD-Turbo on CPU (reliable on every machine; ~20–60 s per image). Cached pipeline."""
     global _PIPE
     if _PIPE is None:
@@ -213,39 +216,79 @@ def content_prompt(text: str, recipe: A.Recipe, book=None) -> str:
     return f"{t}, {medium_hint(book) if book is not None else 'painting, artwork, clear composition'}"
 
 # --------------------------------------------------------------------------- style transfer
-def transfer(contents: torch.Tensor, grams_target: Dict[int, torch.Tensor], device, iters: int = 250,
-             style_weight: float = 40.0, content_weight: float = 1.0, tv_weight: float = 0.6, strength: float = 1.0,
-             jitter: float = 0.0, progress=None) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Gatys style transfer, batched. contents: B×3×H×W in [0,1]. Returns (images, final style loss per image).
-    Style loss per layer is *relative* (‖G−G*‖²/‖G*‖²) so the weights mean the same thing for any portfolio."""
-    net = vgg().to(device)
-    x0 = contents.to(device)
-    with torch.no_grad():
-        _, c_target = features(x0, net, device)
-        c_scale = (c_target ** 2).mean().clamp_min(1e-6)
-    G = {k: v.to(device)[None] for k, v in grams_target.items()}
-    Gn = {k: (v ** 2).sum().clamp_min(1e-12) for k, v in G.items()}
-    x = (x0 + jitter * torch.randn_like(x0)).clamp(0, 1).requires_grad_(True)
-    opt = torch.optim.Adam([x], lr=0.03)
-    sw = style_weight * strength
+def _box(x: torch.Tensor, r: int) -> torch.Tensor:
+    k = 2 * r + 1
+    return F.avg_pool2d(F.pad(x, (r, r, r, r), mode="reflect"), k, stride=1)
+
+def guided_filter(p: torch.Tensor, guide: torch.Tensor, r: int = 4, eps: float = 1e-3) -> torch.Tensor:
+    """He et al. guided filter: smooth p while keeping the edges of guide (the content drawing)."""
+    g = guide.mean(1, keepdim=True)
+    mean_g, mean_p = _box(g, r), _box(p, r)
+    cov = _box(g * p, r) - mean_g * mean_p
+    var = _box(g * g, r) - mean_g * mean_g
+    a = cov / (var + eps); b = mean_p - a * mean_g
+    return _box(a, r) * g + _box(b, r)
+
+def _stylize(x0: torch.Tensor, G: Dict[int, torch.Tensor], Gn: Dict[int, torch.Tensor], c_target: Dict[int, torch.Tensor],
+             c_scale: Dict[int, torch.Tensor], net, device, iters: int, sw: float, cw: float, tv_weight: float,
+             lr: float, progress=None, offset: int = 0, total: int = 0) -> Tuple[torch.Tensor, torch.Tensor]:
+    x = x0.clone().requires_grad_(True)
+    opt = torch.optim.Adam([x], lr=lr)
     last = torch.zeros(x0.shape[0])
     for it in range(iters):
         if it == int(iters * 0.6):
-            for g in opt.param_groups: g["lr"] = 0.012          # anneal: settle the brushwork
+            for g in opt.param_groups: g["lr"] = lr * 0.4
         opt.zero_grad(set_to_none=True)
-        fs, c = features(x, net, device)
+        fs, cs = features(x, net, device)
         ls = torch.zeros(x0.shape[0], device=device)
         for k, f in fs.items():
-            ls = ls + ((gram(f) - G[k]) ** 2).flatten(1).sum(1) / Gn[k]
-        lc = ((c - c_target) ** 2).flatten(1).mean(1) / c_scale
+            ls = ls + STYLE_LAYER_W[k] * ((gram(f) - G[k]) ** 2).flatten(1).sum(1) / Gn[k]
+        lc = torch.zeros(x0.shape[0], device=device)
+        for k, f in cs.items():
+            lc = lc + CONTENT_LAYERS[k] * ((f - c_target[k]) ** 2).flatten(1).mean(1) / c_scale[k]
         tv = (x[:, :, 1:, :] - x[:, :, :-1, :]).abs().flatten(1).mean(1) + (x[:, :, :, 1:] - x[:, :, :, :-1]).abs().flatten(1).mean(1)
-        loss = (sw * ls + content_weight * lc + tv_weight * tv).sum()
-        loss.backward()
-        opt.step()
+        loss = (sw * ls + cw * lc + tv_weight * tv).sum()
+        loss.backward(); opt.step()
         with torch.no_grad(): x.clamp_(0, 1)
         last = ls.detach().cpu()
-        if progress and (it % 25 == 0 or it == iters - 1): progress(it + 1, iters, float(last.mean()))
-    return x.detach().cpu(), last
+        if progress and (it % 25 == 0 or it == iters - 1): progress(offset + it + 1, total, float(last.mean()))
+    return x.detach(), last
+
+def transfer(contents: torch.Tensor, grams_target: Dict[int, torch.Tensor], device, iters: int = 250,
+             style_weight: float = 30.0, content_weight: float = 1.0, tv_weight: float = 0.6, strength: float = 1.0,
+             jitter: float = 0.0, progress=None, clean: float = 0.35) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Gatys style transfer, batched and coarse-to-fine. contents: B×3×H×W in [0,1].
+    Style loss per layer is *relative* (‖G−G*‖²/‖G*‖²) and weighted toward the shallow layers (palette,
+    brush) so the artist's *subjects* don't get hallucinated into the scene; content is held at two depths
+    (edges + layout). The large shapes are settled at 2/3 resolution first, then refined at full size —
+    cleaner composition, far less texture noise. A light guided filter (edges from the content) finishes.
+    Returns (images, final style loss per image)."""
+    net = vgg().to(device)
+    x_full = contents.to(device)
+    B, _, H, W = x_full.shape
+    G = {k: v.to(device)[None] for k, v in grams_target.items()}
+    Gn = {k: (v ** 2).sum().clamp_min(1e-12) for k, v in G.items()}
+    sw = style_weight * strength
+    cw = content_weight * (1.0 + 0.8 * max(0.0, 1.0 - strength))     # gentle style → hold the drawing harder
+    coarse = (max(96, int(H * 2 / 3) // 16 * 16), max(96, int(W * 2 / 3) // 16 * 16))
+    stages = [(coarse, int(iters * 0.55)), ((H, W), iters - int(iters * 0.55))] if min(H, W) >= 320 else [((H, W), iters)]
+    x, done, last = None, 0, torch.zeros(B)
+    for si, ((h, w), n) in enumerate(stages):
+        xc = F.interpolate(x_full.cpu(), size=(h, w), mode="bilinear", align_corners=False, antialias=True).to(device) if (h, w) != (H, W) else x_full   # antialias on CPU (not on MPS)
+        with torch.no_grad():
+            _, c_t = features(xc, net, device)
+            c_scale = {k: (v ** 2).mean().clamp_min(1e-6) for k, v in c_t.items()}
+        if x is None:
+            x = (xc + jitter * torch.randn_like(xc)).clamp(0, 1)
+        else:
+            x = F.interpolate(x, size=(h, w), mode="bilinear", align_corners=False)
+        lr = 0.03 if si == 0 else 0.015
+        x, last = _stylize(x, G, Gn, c_t, c_scale, net, device, n, sw, cw, tv_weight, lr, progress, done, iters)
+        done += n
+    if clean > 0:
+        with torch.no_grad():
+            x = (1 - clean) * x + clean * guided_filter(x, x_full, r=4, eps=2e-3).clamp(0, 1)
+    return x.cpu(), last
 
 def grade(x: torch.Tensor, recipe: A.Recipe, book: StyleBook) -> torch.Tensor:
     """Mood words → colour grade: move brightness/contrast/saturation/warmth toward mean + w·std."""
@@ -347,9 +390,10 @@ class NeuralEngine:
         G = {k: torch.stack([self.book.grams[i][k] for i in pieces]).mean(0) for k in STYLE_LAYERS}
         X0 = self._content_batch(recipe, count, seed, content, log, sketch=sketch, freedom=freedom)
         # temperature = how hard the style is pushed (0.3 gentle … 1.3 fully repainted)
-        st = strength if strength is not None else max(0.25, min(2.0, temp * 1.25))
+        st = strength if strength is not None else max(0.25, min(2.0, temp))
         t0 = time.time()
-        X, sl = transfer(X0, G, self.device, iters=iters or self.iters, strength=st, jitter=0.03 * temp if content is not None else 0.0,
+        X, sl = transfer(X0, G, self.device, iters=iters or self.iters, strength=st, jitter=0.02 * temp if content is not None else 0.0,
+                         clean=float(max(0.2, min(0.6, 0.7 - 0.4 * st))),
                          progress=lambda it, n, l: log(f"repainting in the style… {it}/{n}  style loss {l:.3g}"))
         log(f"style transfer done in {time.time() - t0:.0f}s")
         X = grade(X, recipe, self.book)
