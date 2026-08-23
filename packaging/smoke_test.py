@@ -23,6 +23,7 @@ def get(url, timeout=5):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("cmd"); ap.add_argument("--frozen", action="store_true")
     ap.add_argument("--timeout", type=float, default=120); ap.add_argument("--keep-data", action="store_true")
+    ap.add_argument("--deep", action="store_true", help="also import torch/diffusers/transformers inside the app (/api/selfcheck)")
     a = ap.parse_args()
     port = free_port(); data = tempfile.mkdtemp(prefix="atelier-smoke-")
     env = dict(os.environ, ATELIER_NO_WINDOW="1", ATELIER_PORT=str(port), ATELIER_DATA_DIR=data, PYTHONUNBUFFERED="1")
@@ -60,6 +61,15 @@ def main():
         check("GET /api/status", status)
         check("GET /api/gallery", lambda: get(url + "api/gallery")[0] == 200)
         check("sandbox folders created", lambda: all(os.path.isdir(os.path.join(data, d)) for d in ("portfolios", "gallery", "models")))
+        if a.deep:
+            def deep():
+                st, body = get(url + "api/selfcheck", timeout=600); j = json.loads(body)
+                for k, v in j["modules"].items(): print(f"    {k:<40} {v[:90] if not v.startswith('ERROR') else 'ERROR'}")
+                bad = {k: v for k, v in j["modules"].items() if v.startswith("ERROR")}
+                for k, v in bad.items(): print(f"\n--- {k} ---\n{v}\n")
+                assert j["ok"], f"{len(bad)} import(s) failed: {', '.join(bad)}"
+                return True
+            check("deep self-check (torch · diffusers · transformers)", deep)
     proc.terminate()
     try: proc.wait(10)
     except Exception: proc.kill()

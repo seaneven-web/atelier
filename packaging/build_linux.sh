@@ -13,5 +13,5 @@ rm -rf "$DIST/Atelier"; mkdir -p "$DIST"
 cp "$HERE/linux/atelier.desktop" "$HERE/linux/install.sh" "$HERE/linux/icon-256.png" "$HERE/linux/icon-512.png" "$DIST/Atelier/" 2>/dev/null || true
 chmod +x "$DIST/Atelier/install.sh" 2>/dev/null || true
 ( cd "$DIST" && rm -f "Atelier-linux-$ARCH.tar.gz" && tar -czf "Atelier-linux-$ARCH.tar.gz" Atelier )
-[ -n "${SKIP_SMOKE:-}" ] || "$PY" "$HERE/smoke_test.py" "$DIST/Atelier/Atelier" --frozen
+[ -n "${SKIP_SMOKE:-}" ] || "$PY" "$HERE/smoke_test.py" "$DIST/Atelier/Atelier" --frozen --deep
 ls -la "$DIST" | grep -E "Atelier-linux" || true

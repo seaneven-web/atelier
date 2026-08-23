@@ -17,5 +17,5 @@ if [ -z "${SKIP_DMG:-}" ]; then
   rm -f "$DIST/Atelier-mac-$ARCH.dmg"; STAGE="$(mktemp -d)"; cp -R "$DIST/Atelier.app" "$STAGE/"; ln -s /Applications "$STAGE/Applications"
   hdiutil create -quiet -volname "Atelier" -srcfolder "$STAGE" -ov -format UDZO "$DIST/Atelier-mac-$ARCH.dmg"; rm -rf "$STAGE"
 fi
-[ -n "${SKIP_SMOKE:-}" ] || "$PY" "$HERE/smoke_test.py" "$DIST/Atelier.app/Contents/MacOS/Atelier" --frozen
+[ -n "${SKIP_SMOKE:-}" ] || "$PY" "$HERE/smoke_test.py" "$DIST/Atelier.app/Contents/MacOS/Atelier" --frozen --deep
 ls -la "$DIST" | grep -E "Atelier-mac" || true

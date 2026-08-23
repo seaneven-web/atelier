@@ -22,5 +22,5 @@ if ($Iscc -and -not $env:SKIP_INSTALLER) {
   $Iss = Join-Path $Here "windows\atelier.iss"
   & $Iscc.Source "/DMyAppVersion=$Version" "/DDistDir=$Dist" $Iss; if ($LASTEXITCODE -ne 0) { Write-Warning "Inno Setup failed; zip only" }
 } else { Write-Warning "Inno Setup (ISCC.exe) not found - zip only" }
-if (-not $env:SKIP_SMOKE) { & $Py (Join-Path $Here "smoke_test.py") (Join-Path $Dist "Atelier\Atelier.exe") --frozen; if ($LASTEXITCODE -ne 0) { throw "smoke test failed" } }
+if (-not $env:SKIP_SMOKE) { & $Py (Join-Path $Here "smoke_test.py") (Join-Path $Dist "Atelier\Atelier.exe") --frozen --deep; if ($LASTEXITCODE -ne 0) { throw "smoke test failed" } }
 Get-ChildItem $Dist | Where-Object { $_.Name -like "Atelier-windows*" } | Format-Table Name, Length

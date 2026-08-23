@@ -130,12 +130,30 @@ def models_status() -> dict:
     sd = DATA_DIR / "models" / "huggingface" / "hub" / "models--stabilityai--sd-turbo"
     sd_ok = sd.exists() and _has_file(sd, lambda f: f.endswith(".safetensors"))
     try:
-        import diffusers  # noqa
-        sd_lib = True
-    except Exception:
-        sd_lib = False
-    return {"vgg19": vgg, "sd_turbo": sd_ok, "sd_lib": sd_lib, "ready": vgg and sd_ok and sd_lib,
+        sd_lib = N().sd_available(); sd_err = N().SD_IMPORT_ERROR
+    except Exception as e:
+        sd_lib, sd_err = False, f"{type(e).__name__}: {e}"
+    if not sd_lib and sd_err: log("text-to-image unavailable: " + sd_err)
+    return {"vgg19": vgg, "sd_turbo": sd_ok, "sd_lib": sd_lib, "sd_error": sd_err, "ready": vgg and sd_ok and sd_lib,
             "folder": str(DATA_DIR / "models")}
+
+def selfcheck() -> dict:
+    """Import everything the painter needs — the frozen build runs this in CI so a bad bundle fails the build."""
+    out = {"ok": True, "modules": {}}
+    for name, fn in (("torch", lambda: __import__("torch").__version__), ("torchvision", lambda: __import__("torchvision").__version__),
+                     ("pillow_heif", lambda: __import__("pillow_heif").__version__), ("atelier", lambda: bool(A())), ("atelier_neural", lambda: bool(N())),
+                     ("transformers", lambda: __import__("transformers").__version__), ("diffusers", lambda: __import__("diffusers").__version__),
+                     ("diffusers.AutoPipelineForText2Image", lambda: bool(__import__("diffusers", fromlist=["AutoPipelineForText2Image"]).AutoPipelineForText2Image)),
+                     ("diffusers.AutoPipelineForImage2Image", lambda: bool(__import__("diffusers", fromlist=["AutoPipelineForImage2Image"]).AutoPipelineForImage2Image)),
+                     ("transformers.CLIPTextModel", lambda: bool(__import__("transformers", fromlist=["CLIPTextModel"]).CLIPTextModel)),
+                     ("transformers.CLIPTokenizer", lambda: bool(__import__("transformers", fromlist=["CLIPTokenizer"]).CLIPTokenizer))):
+        try:
+            out["modules"][name] = str(fn())
+        except Exception as e:
+            import traceback
+            out["modules"][name] = "ERROR " + "".join(traceback.format_exception(type(e), e, e.__traceback__))[-2500:]
+            out["ok"] = False
+    return out
 
 def portfolios() -> List[dict]:
     out = []
@@ -295,6 +313,7 @@ class Handler(BaseHTTPRequestHandler):
                 stamp = sheets[0].name[: sheets[0].name.rfind("_sheet")]
                 files = sorted(f for f in (DATA_DIR / "gallery").glob(stamp + "_*.png") if not f.name.endswith("_sheet.png"))
                 return self._json(200, {"files": [f"/gallery/{f.name}" for f in files], "names": [f.name for f in files], "title": stamp.split("_", 1)[-1].replace("-", " ")})
+            if p == "/api/selfcheck": return self._json(200, selfcheck())
             if p == "/api/gallery":
                 files = sorted((DATA_DIR / "gallery").glob("*_sheet.png"), key=lambda f: f.stat().st_mtime, reverse=True)[:40]
                 return self._json(200, [{"sheet": f"/gallery/{f.name}", "name": f.name} for f in files])

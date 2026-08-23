@@ -141,11 +141,21 @@ class StyleBook:
 
 # --------------------------------------------------------------------------- content (text → image)
 _PIPE = None
+SD_IMPORT_ERROR: Optional[str] = None
 def sd_available() -> bool:
+    """Can this install draw from words? Records the real import error for the UI/log when it can't."""
+    global SD_IMPORT_ERROR
     try:
         import diffusers  # noqa: F401
+        from diffusers import AutoPipelineForText2Image  # noqa: F401
+        import transformers  # noqa: F401
+        SD_IMPORT_ERROR = None
         return True
-    except ImportError:
+    except Exception as e:  # ImportError, OSError (missing dylib), RuntimeError (version checks) …
+        import traceback
+        SD_IMPORT_ERROR = f"{type(e).__name__}: {e}"
+        try: A.say(A.dim("  text-to-image unavailable: " + "".join(traceback.format_exception(type(e), e, e.__traceback__))[-1500:]))
+        except Exception: pass
         return False
 
 def content_from_text(prompt: str, seed: int, steps: int = 2, size: int = CONTENT_RES) -> Image.Image:
@@ -296,8 +306,9 @@ class NeuralEngine:
             x = F.interpolate(x, size=(self.res, self.res), mode="bilinear", align_corners=False, antialias=True)
             return x.repeat(count, 1, 1, 1)
         if not sd_available():
-            raise RuntimeError("Text-to-image needs SD-Turbo:  pip install diffusers transformers accelerate safetensors  "
-                               "— or pass --content <image> to style a photo or sketch instead.")
+            raise RuntimeError(f"Text-to-image is unavailable in this install ({SD_IMPORT_ERROR}). "
+                               "From source: pip install diffusers transformers accelerate safetensors. "
+                               "Meanwhile, start from a sketch or use --content <image> to style an image instead.")
         base = seed if seed is not None else int(time.time()) % 100000
         for i in range(count):
             t0 = time.time()

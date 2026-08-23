@@ -18,7 +18,7 @@ async function refresh() {
   $("models-text").innerHTML = m.ready
     ? `Both pretrained models are in the sandbox folder. The app no longer needs the network.`
     : `Atelier uses two pretrained models that have to be fetched once: <b>VGG19</b> (the style network, ~550 MB) and <b>SD-Turbo</b> (draws what you describe, ~2.5 GB). They are saved in <code>${m.folder}</code>; after that everything runs here, offline.` +
-      (m.sd_lib ? "" : " <span style='color:var(--warn)'>The text-to-image library is not installed in this build — drawing from words is unavailable; repainting sketches still works.</span>");
+      (m.sd_lib ? "" : ` <span style='color:var(--warn)'>Drawing from words is unavailable in this build${m.sd_error ? " (" + m.sd_error + ")" : ""} — repainting sketches still works. Please report this at github.com/seaneven-web/atelier/issues with the line from the log file in the sandbox folder.</span>`);
   $("dl").hidden = m.ready;
   $("b-models").style.display = m.ready && !$("dl-log").textContent ? "none" : "";
   const sel = $("pf"); const cur = sel.value;
