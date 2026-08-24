@@ -1,0 +1,20 @@
+[
+  {"src": "~/Atelier/gallery/20260824-133102_a-sailboat-at-sunset_1.png", "name": "sailboat-at-sunset",
+   "prompt": "a sailboat at sunset",
+   "note": "Studied from five of one artist's coloured-pencil drawings. Four words were the whole brief."},
+  {"src": "~/Atelier/gallery/20260824-133633_a-hippo-eating-cheese_1.png", "name": "hippo-eating-cheese",
+   "prompt": "a hippo eating cheese",
+   "note": "The same five drawings. The paper, the pencil and the palette are the artist's; the hippo is not."},
+  {"src": "~/Atelier/gallery/20260824-132043_a-kansas-prairie-at-sunset_3.png", "name": "prairie-at-sunset",
+   "prompt": "a Kansas prairie at sunset",
+   "note": "No sketch given — the apprentice composed it, then painted it in the artist's hand."},
+  {"src": "~/Atelier/gallery/20260824-132558_a-fox-reading-a-book-under-a-tre_1.png", "name": "fox-reading",
+   "prompt": "a fox reading a book under a tree",
+   "note": "Roughly a minute on a 2019 laptop — no GPU cluster, no fine-tuning, no upload."},
+  {"src": "~/Atelier/gallery/20260824-134139_a-heron-standing-in-shallow-wate_2.png", "name": "heron-at-dawn",
+   "prompt": "a heron standing in shallow water at dawn",
+   "note": "A different artist's portfolio — the same engine, a completely different hand."},
+  {"src": "~/Atelier/gallery/20260824-134703_a-mouse-doing-karaoke_1.png", "name": "mouse-karaoke",
+   "prompt": "a mouse doing karaoke",
+   "note": "That second portfolio again: bolder colour, heavier ink, its own way of drawing a face."}
+]

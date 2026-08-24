@@ -1,6 +1,6 @@
 .venv/
-model/
-gallery/
+/model/
+/gallery/
 data/
 dist/
 build/

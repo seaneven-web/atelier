@@ -44,13 +44,36 @@
   .dl a:hover { border-color:var(--accent); } .dl b { display:block; } .dl small { color:var(--muted); }
   code { font:400 .92em "IBM Plex Mono",monospace; background:var(--surface-2); padding:2px 6px; border-radius:5px; }
   pre { background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font:400 13px/1.55 "IBM Plex Mono",monospace; }
+
+  /* ---- the carousel of pieces ---- */
+  .carousel { margin:36px 0 0; }
+  .frame { position:relative; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--surface-2); box-shadow:0 8px 30px rgba(20,24,30,.09); }
+  .viewport { overflow:hidden; }
+  .track { display:flex; transition:transform .55s cubic-bezier(.4,0,.2,1); }
+  .slide { flex:0 0 100%; min-width:0; }
+  .slide figure { margin:0; }
+  .slide figure { margin:0; }
+  .pic { display:flex; align-items:center; justify-content:center; padding:22px; background:var(--surface-2); height:clamp(300px,46vw,500px); }
+  .pic img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; border-radius:3px; box-shadow:0 6px 22px rgba(20,24,30,.22); }
+  .slide figcaption { border-top:1px solid var(--line); background:var(--surface); padding:12px 16px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; min-height:52px; }
+  .slide figcaption b { font:500 16px/1.35 Fraunces,Georgia,serif; }
+  .slide figcaption span { color:var(--muted); font-size:13px; }
+  .arrow { position:absolute; top:calc(50% - 46px); transform:translateY(-50%); width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:.85; }
+  .arrow:hover { opacity:1; border-color:var(--muted); } .arrow.prev { left:12px; } .arrow.next { right:12px; }
+  .arrow:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .dots { display:flex; gap:7px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  .dots button { width:9px; height:9px; padding:0; border-radius:50%; border:1px solid var(--line); background:var(--surface-2); cursor:pointer; }
+  .dots button[aria-current="true"] { background:var(--accent); border-color:var(--accent); }
+  .dots button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { .track { transition:none; } }
+  @media (max-width:560px) { .arrow { display:none; } .slide figcaption { min-height:0; padding:11px 14px; } .pic { padding:10px; height:clamp(300px,74vw,420px); } }
   footer { margin-top:70px; color:var(--muted); font-size:13.5px; border-top:1px solid var(--line); padding-top:18px; }
   footer a { color:inherit; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav><b>Atelier</b><a href="#how">How it works</a><a href="#eye">The eye</a><a href="#controls">Controls</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
+  <nav><b>Atelier</b><a href="#pieces">Pieces</a><a href="#how">How it works</a><a href="#eye">The eye</a><a href="#controls">Controls</a><a href="#privacy">Privacy</a><a href="#download">Download</a><a href="https://github.com/seaneven-web/atelier">Source</a></nav>
 
   <h1>An apprentice for your studio.</h1>
   <p class="lede"><b>You draw the outline. It lays in the colour — in your palette, your hand. You do the shading.</b> Atelier is an AI apprentice that learns your style from your own pieces and takes the legwork off your desk, so you can spend your time on the finer details. It runs on your own computer; your work never leaves it and is never used to train anyone's AI.</p>
@@ -59,6 +82,45 @@
     <a class="btn" href="https://github.com/seaneven-web/atelier">View the code</a>
   </div>
   <p class="note">Free and open source. Unsigned builds (see the Download notes). The app fetches two pretrained models once (~3 GB), then runs offline. <b>Version 0.1.4</b> — sharper brushwork, a composition lock, an apprentice you can train on your own work, and a log of every run.</p>
+
+
+  <section class="carousel" id="pieces" style="margin-top:52px">
+    <h2>Painted by the apprentice</h2>
+    <p class="muted" style="margin:0 0 16px">Every piece below was painted on an ordinary laptop from a handful of one artist's own drawings &mdash; no fine-tuning, no cloud, nothing uploaded. The words are the whole brief; the palette, the marks and the paper are the artist's.</p>
+    <div class="frame" role="region" aria-roledescription="carousel" aria-label="Pieces painted by Atelier">
+      <div class="viewport"><div class="track" id="track">
+<!-- slides:start -->
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="1 of 6">
+          <figure><div class="pic"><img src="assets/gallery/sailboat-at-sunset.jpg" alt="a sailboat at sunset — painted in the artist's style" width="900" height="900"></div>
+          <figcaption><b>&ldquo;a sailboat at sunset&rdquo;</b> <span>Studied from five of one artist&#x27;s coloured-pencil drawings. Four words were the whole brief.</span></figcaption></figure>
+        </div>
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="2 of 6">
+          <figure><div class="pic"><img src="assets/gallery/hippo-eating-cheese.jpg" alt="a hippo eating cheese — painted in the artist's style" loading=lazy width="900" height="900"></div>
+          <figcaption><b>&ldquo;a hippo eating cheese&rdquo;</b> <span>The same five drawings. The paper, the pencil and the palette are the artist&#x27;s; the hippo is not.</span></figcaption></figure>
+        </div>
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="3 of 6">
+          <figure><div class="pic"><img src="assets/gallery/prairie-at-sunset.jpg" alt="a Kansas prairie at sunset — painted in the artist's style" loading=lazy width="900" height="900"></div>
+          <figcaption><b>&ldquo;a Kansas prairie at sunset&rdquo;</b> <span>No sketch given — the apprentice composed it, then painted it in the artist&#x27;s hand.</span></figcaption></figure>
+        </div>
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="4 of 6">
+          <figure><div class="pic"><img src="assets/gallery/fox-reading.jpg" alt="a fox reading a book under a tree — painted in the artist's style" loading=lazy width="900" height="900"></div>
+          <figcaption><b>&ldquo;a fox reading a book under a tree&rdquo;</b> <span>Roughly a minute on a 2019 laptop — no GPU cluster, no fine-tuning, no upload.</span></figcaption></figure>
+        </div>
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="5 of 6">
+          <figure><div class="pic"><img src="assets/gallery/heron-at-dawn.jpg" alt="a heron standing in shallow water at dawn — painted in the artist's style" loading=lazy width="900" height="900"></div>
+          <figcaption><b>&ldquo;a heron standing in shallow water at dawn&rdquo;</b> <span>A different artist&#x27;s portfolio — the same engine, a completely different hand.</span></figcaption></figure>
+        </div>
+        <div class="slide" role="group" aria-roledescription="slide" aria-label="6 of 6">
+          <figure><div class="pic"><img src="assets/gallery/mouse-karaoke.jpg" alt="a mouse doing karaoke — painted in the artist's style" loading=lazy width="900" height="900"></div>
+          <figcaption><b>&ldquo;a mouse doing karaoke&rdquo;</b> <span>That second portfolio again: bolder colour, heavier ink, its own way of drawing a face.</span></figcaption></figure>
+        </div>
+<!-- slides:end -->
+      </div></div>
+      <button class="arrow prev" id="cprev" type="button" aria-label="Previous piece">&#8249;</button>
+      <button class="arrow next" id="cnext" type="button" aria-label="Next piece">&#8250;</button>
+    </div>
+    <div class="dots" id="cdots"></div>
+  </section>
 
   <figure class="hero-img" style="margin-top:38px">
     <img src="assets/app.png" alt="The Atelier app: your pieces, your outline and a prompt with sliders, and the coloured results">
@@ -133,5 +195,47 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requiremen
 
   <footer>Atelier is open source (<a href="https://github.com/seaneven-web/atelier">GitHub</a>). Pretrained components: VGG19 (ImageNet weights, via torchvision) and Stable Diffusion Turbo (Stability AI, under its own licence) — both downloaded from their public sources by the app, never redistributed here. Made for an artist who wanted an apprentice — not a replacement — and wanted to keep his style his own.</footer>
 </div>
+
+<script>
+(function () {
+  var track = document.getElementById('track'); if (!track) return;
+  var slides = Array.prototype.slice.call(track.children);
+  var dots = document.getElementById('cdots'), i = 0, timer = null;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  slides.forEach(function (s, n) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('aria-label', 'Piece ' + (n + 1) + ' of ' + slides.length);
+    b.addEventListener('click', function () { go(n); rest(); });
+    dots.appendChild(b);
+  });
+  function go(n) {
+    i = (n + slides.length) % slides.length;
+    track.style.transform = 'translateX(' + (-i * 100) + '%)';
+    slides.forEach(function (s, k) { s.setAttribute('aria-hidden', k === i ? 'false' : 'true'); });
+    Array.prototype.forEach.call(dots.children, function (d, k) { d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+  }
+  function rest() { if (timer) { clearInterval(timer); } start(); }
+  function start() { if (!reduce) { timer = setInterval(function () { go(i + 1); }, 6000); } }
+  function stop() { clearInterval(timer); timer = null; }
+  document.getElementById('cprev').addEventListener('click', function () { go(i - 1); rest(); });
+  document.getElementById('cnext').addEventListener('click', function () { go(i + 1); rest(); });
+  var frame = track.closest('.frame');
+  frame.addEventListener('mouseenter', stop); frame.addEventListener('mouseleave', start);
+  frame.addEventListener('focusin', stop); frame.addEventListener('focusout', start);
+  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+  document.getElementById('pieces').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { go(i - 1); rest(); } else if (e.key === 'ArrowRight') { go(i + 1); rest(); }
+  });
+  var x0 = null;
+  frame.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; stop(); }, { passive: true });
+  frame.addEventListener('touchend', function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) { go(i + (dx < 0 ? 1 : -1)); }
+    start();
+  });
+  go(0); start();
+})();
+</script>
 </body>
 </html>

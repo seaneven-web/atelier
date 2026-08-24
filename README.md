@@ -4,7 +4,7 @@
 
 Give Atelier a few of an artist's pieces (JPG, PNG, phone HEIC — photographed drawings are cropped to the paper) and say what you'd like to see. It draws what you describe, then repaints it the way the artist paints. Start from a sketch if you like, turn the style up or down, ask for one piece or eight.
 
-Website: https://seaneven-web.github.io/atelier/ · Downloads: https://github.com/seaneven-web/atelier/releases
+Website (with a carousel of pieces it has painted): https://seaneven-web.github.io/atelier/ · Downloads: https://github.com/seaneven-web/atelier/releases
 
 ## The app
 
@@ -54,6 +54,12 @@ python atelier.py pretrain / train ~/DadsArt # optional: the small trained actor
 ```
 
 Knobs: `--temp` (style strength 0.4 gentle … 1.2 fully repainted), `--structure` (composition lock, default 0.5), `--eye` (weight of the trained eye), `--res 256|384|512`, `--iters 250`, `--size` (output long side). `ATELIER_HOME` relocates model/gallery; `ATELIER_DEVICE=cpu|mps|cuda` forces the device.
+
+### The website's carousel
+
+`site/gallery.json` lists the pieces shown on the site (each one a file in a gallery folder, plus its prompt
+and a one-line note). `python3 site/build_gallery.py` re-encodes them into `site/assets/gallery/` as web-sized
+JPEGs and rewrites the slide markup in `site/index.html`. Pushing `site/**` to `main` republishes the page.
 
 ## Install from source
 
